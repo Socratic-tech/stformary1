@@ -3,59 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silhouette Creator (Vector)</title>
-    <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js"></script>
+    <title>Silhouette Studio: Final</title>
+    <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
     
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #333; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        :root { --primary: #3b82f6; --bg: #f1f5f9; --card: #ffffff; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #334155; display: flex; flex-direction: column; align-items: center; padding: 30px 20px; margin: 0; }
         
-        h1 { margin-bottom: 5px; }
-        p { color: #64748b; margin-bottom: 25px; text-align: center; max-width: 600px; line-height: 1.5; }
+        h1 { margin-bottom: 5px; color: #0f172a; }
+        p { color: #64748b; margin-bottom: 35px; text-align: center; max-width: 600px; line-height: 1.5; }
         
-        .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; width: 100%; max-width: 1100px; align-items: flex-start; }
+        .container { display: flex; flex-wrap: wrap; gap: 25px; justify-content: center; width: 100%; max-width: 1200px; align-items: flex-start; }
         
-        .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
         
-        /* Canvas Container */
-        .preview-area { flex: 2; min-width: 300px; align-items: center; position: relative; }
+        /* Canvas */
+        .preview-area { flex: 2; min-width: 320px; align-items: center; }
         canvas { max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px; background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%); background-size: 20px 20px; }
         
         /* Controls */
-        .controls-area { flex: 1; min-width: 280px; max-width: 350px; }
+        .controls-area { flex: 1; min-width: 300px; max-width: 380px; }
         
-        .control-group { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
-        .control-group:last-child { border-bottom: none; }
+        .section-header { background: #f8fafc; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
+        .control-group { margin-bottom: 25px; }
         
-        label { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
-        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+        label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); margin-bottom: 5px; }
+        input[type="color"] { border: 1px solid #e2e8f0; border-radius: 4px; width: 50px; height: 30px; cursor: pointer; background: none; padding: 2px;}
+        input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-upload { background: #eff6ff; color: #1d4ed8; border: 1px dashed #bfdbfe; margin-bottom: 25px; }
+        .btn-upload:hover { background: #dbeafe; border-color: #3b82f6; }
         
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        .btn-upload { background: #e2e8f0; color: #334155; margin-bottom: 20px; }
-        .btn-upload:hover { background: #cbd5e1; }
-        
-        /* Download Buttons Grid */
-        .download-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        
-        .btn-dl { color: white; opacity: 0.5; pointer-events: none; font-size: 0.9rem; }
+        .download-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .btn-dl { color: white; opacity: 0.5; pointer-events: none; }
         .btn-dl:not([disabled]) { opacity: 1; pointer-events: auto; }
-        
-        .btn-png { background: var(--primary); }
-        .btn-png:hover { background: #1d4ed8; }
-        
-        .btn-svg { background: #059669; }
-        .btn-svg:hover { background: #047857; }
+        .btn-png { background: #334155; } .btn-png:hover { background: #1e293b; }
+        .btn-svg { background: #059669; } .btn-svg:hover { background: #047857; }
 
         #fileInput { display: none; }
+        .note { font-size: 0.8rem; background: #fffba0; color: #854d0e; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; line-height: 1.3; border-left: 4px solid #eab308;}
+        .val-badge { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: normal; }
         
-        .tip { font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 10px; border-radius: 6px; margin-top: 10px; line-height: 1.4; }
+        /* Highlight for the new feature */
+        .highlight-option { background: #fff7ed; border: 1px solid #ffedd5; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-    <h1>👤 Silhouette Creator</h1>
-    <p>Upload a high-contrast photo. Adjust the threshold to extract the shadow.</p>
+    <h1>Silhouette Studio: Final</h1>
+    <p>Create solid fills, outlines, or clean <strong>Backlit Shadow effects</strong>.</p>
 
     <div class="container">
         
@@ -66,23 +64,57 @@
             <input type="file" id="fileInput" accept="image/*">
 
             <div class="control-group">
-                <label>Threshold <span style="font-weight:normal; font-size:0.8em; color:#666;">(Sensitivity)</span></label>
+                <div class="section-header">1. Clean Up Image</div>
+                <label>Contrast Boost <span class="val-badge" id="contrastVal">0%</span></label>
+                <input type="range" id="contrast" min="0" max="200" value="0">
+                
+                <label>Edge Blur (Pre-cut) <span class="val-badge" id="blurVal">0px</span></label>
+                <input type="range" id="blur" min="0" max="10" value="0" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <div class="section-header">2. Create Solid Fill</div>
+                <label>Threshold (Cutoff) <span class="val-badge" id="threshVal">128</span></label>
                 <input type="range" id="threshold" min="0" max="255" value="128">
-                <div class="tip">
-                    <strong>Tip:</strong> This works best if the person is against a plain wall or window (backlit).
+
+                <div style="display:flex; justify-content:space-between; margin-top:15px; align-items:center;">
+                    <label style="font-weight:normal; margin:0;"><input type="checkbox" id="invert"> Invert Color</label>
+                    <input type="color" id="colorPicker" value="#222222" title="Fill/Stroke Color">
                 </div>
             </div>
 
             <div class="control-group">
-                <label>Cameo Tools</label>
-                <label style="font-weight: normal;"><input type="checkbox" id="flip"> Flip Direction</label>
-                <label style="font-weight: normal;"><input type="checkbox" id="oval"> Oval Frame</label>
-                <label style="font-weight: normal;"><input type="checkbox" id="invert"> Invert (White Shadow)</label>
+                <div class="section-header">3. Style & FX</div>
+                
+                <div class="highlight-option">
+                    <label style="margin:0; color:#9a3412; cursor:pointer;">
+                        <span style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="shadowScreen"> 
+                            <strong>Shadow Screen Mode</strong>
+                        </span>
+                    </label>
+                    <div style="font-size:0.75rem; color:#c2410c; margin-top:5px; margin-left:24px;">Adds backlit glow, soft edges & spotlight.</div>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <label style="font-weight:normal"><input type="checkbox" id="flip"> Flip Horiz.</label>
+                    <label style="font-weight:normal"><input type="checkbox" id="oval"> Oval Crop</label>
+                </div>
+            </div>
+
+             <div class="control-group" style="background: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #bae6fd;">
+                <div class="section-header" style="background:none; padding:0; margin-bottom:10px; color:#0369a1;">4. Outline (SVG Only)</div>
+                <div class="note">Canvas preview remains solid. Outline settings apply to SVG download.</div>
+                
+                <label style="font-weight:normal; color:#0369a1;"><input type="checkbox" id="outlineMode"> <strong>Enable Outline Mode</strong></label>
+                
+                <label>Stroke Width <span class="val-badge" id="strokeVal">2px</span></label>
+                <input type="range" id="strokeWidth" min="1" max="20" value="2">
             </div>
 
             <div class="download-group">
-                <button id="dlPng" class="btn btn-dl btn-png" disabled>⬇ PNG</button>
-                <button id="dlSvg" class="btn btn-dl btn-svg" disabled>⬇ SVG</button>
+                <button id="dlPng" class="btn btn-dl btn-png" disabled>⬇ PNG (Image)</button>
+                <button id="dlSvg" class="btn btn-dl btn-svg" disabled>⬇ SVG (Vector)</button>
             </div>
         </div>
 
@@ -92,22 +124,36 @@
     </div>
 
     <script>
-        // No imports needed. Pure Browser JavaScript.
-
         const fileInput = document.getElementById('fileInput');
+        // Controls
+        const contrastSlider = document.getElementById('contrast');
+        const blurSlider = document.getElementById('blur');
         const thresholdSlider = document.getElementById('threshold');
+        const colorPicker = document.getElementById('colorPicker');
         const flipCheck = document.getElementById('flip');
         const ovalCheck = document.getElementById('oval');
         const invertCheck = document.getElementById('invert');
+        // Shadow Screen FX
+        const shadowScreenCheck = document.getElementById('shadowScreen');
+        // Outline Controls
+        const outlineModeCheck = document.getElementById('outlineMode');
+        const strokeWidthSlider = document.getElementById('strokeWidth');
+        
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const dlPng = document.getElementById('dlPng');
         const dlSvg = document.getElementById('dlSvg');
 
+        function updateBadges() {
+            document.getElementById('contrastVal').innerText = contrastSlider.value + '%';
+            document.getElementById('blurVal').innerText = blurSlider.value + 'px';
+            document.getElementById('threshVal').innerText = thresholdSlider.value;
+            document.getElementById('strokeVal').innerText = strokeWidthSlider.value + 'px';
+        }
+
         let currentImg = new Image();
         let isLoaded = false;
 
-        // 1. Handle Image Upload
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -117,8 +163,13 @@
                 img.onload = () => {
                     currentImg = img;
                     isLoaded = true;
-                    enableButtons();
+                    dlPng.disabled = false;
+                    dlSvg.disabled = false;
+                    // Defaults
                     thresholdSlider.value = 128;
+                    contrastSlider.value = 30;
+                    blurSlider.value = 1.5;
+                    updateBadges();
                     processImage();
                 }
                 img.src = event.target.result;
@@ -126,78 +177,96 @@
             reader.readAsDataURL(file);
         });
 
-        function enableButtons() {
-            dlPng.disabled = false;
-            dlSvg.disabled = false;
-        }
-
-        // 2. Process Image Pipeline
+        // --- ROBUST RENDERING PIPELINE ---
         function processImage() {
             if (!isLoaded) return;
+            
             canvas.width = currentImg.width;
             canvas.height = currentImg.height;
             const w = canvas.width;
             const h = canvas.height;
+            const isScreenFX = shadowScreenCheck.checked;
 
-            // A. Draw Base
-            ctx.save();
-            ctx.clearRect(0, 0, w, h);
-            
+            // 1. Create a Temp Canvas for the Subject Processing
+            const tempCvs = document.createElement('canvas');
+            tempCvs.width = w;
+            tempCvs.height = h;
+            const tCtx = tempCvs.getContext('2d');
+
+            // 2. Draw Image on Temp Canvas with Filters
+            tCtx.save();
             if (ovalCheck.checked) {
-                ctx.beginPath();
-                ctx.ellipse(w/2, h/2, w/2, h/2, 0, 0, 2 * Math.PI);
-                ctx.clip();
+                tCtx.beginPath(); tCtx.ellipse(w/2, h/2, w/2, h/2, 0, 0, 2 * Math.PI); tCtx.clip();
             }
-
             if (flipCheck.checked) {
-                ctx.translate(w, 0);
-                ctx.scale(-1, 1);
+                tCtx.translate(w, 0); tCtx.scale(-1, 1);
             }
+            const contrast = 100 + parseInt(contrastSlider.value);
+            // Add extra blur if Screen FX is on for softer shadows
+            const blur = parseFloat(blurSlider.value) + (isScreenFX ? 4 : 0);
+            tCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
+            tCtx.drawImage(currentImg, 0, 0);
+            tCtx.restore();
 
-            ctx.drawImage(currentImg, 0, 0);
-            ctx.restore();
-
-            // B. Convert to Silhouette (Pixel Manipulation)
-            const frame = ctx.getImageData(0, 0, w, h);
+            // 3. Threshold the Temp Canvas
+            const frame = tCtx.getImageData(0, 0, w, h);
             const data = frame.data;
             const thresh = parseInt(thresholdSlider.value);
             const isInverted = invertCheck.checked;
+            const hex = colorPicker.value;
+            const rVal = parseInt(hex.substr(1,2), 16);
+            const gVal = parseInt(hex.substr(3,2), 16);
+            const bVal = parseInt(hex.substr(5,2), 16);
 
             for (let i = 0; i < data.length; i += 4) {
                 const alpha = data[i+3];
-                if (alpha === 0) continue; // Skip transparent/cropped pixels
+                if (alpha === 0) continue; // Already transparent (oval crop)
 
-                // Calculate Brightness
                 const brightness = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                
                 let isSubject = false;
-                
-                // Logic: If Inverted checked (Subject is White), we look for BRIGHT pixels
-                // If Normal (Subject is Dark), we look for DARK pixels
-                if (isInverted) {
-                     if (brightness > thresh) isSubject = true;
-                } else {
-                     if (brightness < thresh) isSubject = true;
-                }
+
+                if (isInverted) { if (brightness > thresh) isSubject = true; } 
+                else { if (brightness < thresh) isSubject = true; }
 
                 if (isSubject) {
-                    // Solid Color
-                    const c = isInverted ? 255 : 0; // 255=White, 0=Black
-                    data[i] = c; data[i+1] = c; data[i+2] = c; data[i+3] = 255;
+                    data[i] = rVal; data[i+1] = gVal; data[i+2] = bVal; 
+                    // If FX mode, make slightly translucent (e.g. 235/255) for realistic look
+                    data[i+3] = isScreenFX ? 235 : 255; 
                 } else {
-                    // Transparent
-                    data[i+3] = 0;
+                    data[i+3] = 0; // Transparent
                 }
             }
-            ctx.putImageData(frame, 0, 0);
+            tCtx.putImageData(frame, 0, 0);
+
+            // 4. Final Composition on Main Canvas
+            ctx.clearRect(0, 0, w, h);
+
+            if (isScreenFX) {
+                // Layer 1: Solid Warm White Backlight (No Texture)
+                ctx.fillStyle = "#fffdf7";
+                ctx.fillRect(0, 0, w, h);
+
+                // Layer 2: Vignette Spotlight
+                const gradient = ctx.createRadialGradient(w/2, h/2, w/4, w/2, h/2, w);
+                gradient.addColorStop(0, "rgba(0,0,0,0)");
+                gradient.addColorStop(1, "rgba(0,0,0,0.3)"); // Slight corner darkening
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            // Layer 3: The Silhouette
+            ctx.drawImage(tempCvs, 0, 0);
         }
 
-        // 3. Listeners
-        [thresholdSlider, flipCheck, ovalCheck, invertCheck].forEach(el => {
-            el.addEventListener('input', processImage);
-        });
 
-        // 4. Download PNG
+        // Listeners
+        const controls = [contrastSlider, blurSlider, thresholdSlider, colorPicker, flipCheck, ovalCheck, invertCheck, strokeWidthSlider, shadowScreenCheck, outlineModeCheck];
+        controls.forEach(el => el.addEventListener('input', () => {
+            updateBadges();
+            processImage();
+        }));
+
+        // Downloads
         dlPng.addEventListener('click', () => {
             const link = document.createElement('a');
             link.download = 'silhouette.png';
@@ -205,12 +274,30 @@
             link.click();
         });
 
-        // 5. Download SVG
         dlSvg.addEventListener('click', () => {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            // Config for smoother vector lines
+            // SVG logic ignores background, focuses on the shape.
+            const isOutline = outlineModeCheck.checked;
+            
+            // Get clean silhouette data for tracing
+            const tempCvs = document.createElement('canvas');
+            tempCvs.width = canvas.width;
+            tempCvs.height = canvas.height;
+            const tCtx = tempCvs.getContext('2d');
+            processImageForSVG(tCtx, canvas.width, canvas.height);
+
+            const imageData = tCtx.getImageData(0, 0, canvas.width, canvas.height);
             const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2, mincolorratio: 0, colorquantcycles: 0 };
-            const svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
+            let svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
+
+            if (isOutline) {
+                const hex = colorPicker.value;
+                const r = parseInt(hex.substr(1,2), 16);
+                const g = parseInt(hex.substr(3,2), 16);
+                const b = parseInt(hex.substr(5,2), 16);
+                const strokeWidth = strokeWidthSlider.value;
+                svgStr = svgStr.replace(/fill="rgb\(0,0,0\)"/g, `fill="none" stroke="rgb(${r},${g},${b})" stroke-width="${strokeWidth}"`);
+            }
+
             const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -218,6 +305,37 @@
             link.href = url;
             link.click();
         });
+
+        // Helper for SVG tracing (Creates pure black/white shape based on current settings)
+        function processImageForSVG(ctxTarget, w, h) {
+             ctxTarget.save();
+             if (ovalCheck.checked) { ctxTarget.beginPath(); ctxTarget.ellipse(w/2, h/2, w/2, h/2, 0, 0, 2 * Math.PI); ctxTarget.clip(); }
+             if (flipCheck.checked) { ctxTarget.translate(w, 0); ctxTarget.scale(-1, 1); }
+             const contrast = 100 + parseInt(contrastSlider.value);
+             const blur = parseFloat(blurSlider.value); 
+             ctxTarget.filter = `contrast(${contrast}%) blur(${blur}px)`;
+             ctxTarget.drawImage(currentImg, 0, 0);
+             ctxTarget.restore();
+
+             const frame = ctxTarget.getImageData(0, 0, w, h);
+             const data = frame.data;
+             const thresh = parseInt(thresholdSlider.value);
+             const isInverted = invertCheck.checked;
+
+             for (let i = 0; i < data.length; i += 4) {
+                 if (data[i+3] === 0) continue;
+                 const brightness = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                 let isSubject = (isInverted) ? (brightness > thresh) : (brightness < thresh);
+                 if (isSubject) {
+                     data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255; // Force solid black
+                 } else {
+                     data[i+3] = 0;
+                 }
+             }
+             ctxTarget.putImageData(frame, 0, 0);
+        }
+
+        updateBadges();
     </script>
 </body>
 </html>
