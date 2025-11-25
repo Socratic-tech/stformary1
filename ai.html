@@ -58,8 +58,7 @@
         .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Error Message */
-        .error-msg { color: #dc2626; font-size: 0.9rem; margin-top: 10px; text-align: center; max-width: 80%; display: none; }
+        .error-msg { color: #dc2626; font-size: 0.9rem; margin-top: 10px; text-align: center; max-width: 80%; display: none; background: #fee2e2; padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -108,8 +107,8 @@
     </div>
 
     <script type="module">
-        // 1. FIXED IMPORT: Points explicitly to version 1.7.0 to match the assets
-        import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm";
+        // 1. IMPORT: Using stable version 1.5.5
+        import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm";
 
         const fileInput = document.getElementById('fileInput');
         const aiBtn = document.getElementById('aiBtn');
@@ -130,12 +129,11 @@
         let isLoaded = false;
         let isAiProcessed = false;
 
-        // --- 2. Configuration for GitHub Pages ---
-        // We must tell the AI where to find the 'brain' (wasm files) on the public internet
+        // --- 2. THE FIX ---
+        // We explicitly point publicPath to the DATA package on CDN.
+        // This ensures it finds 'isnet_quint8.wasm' correctly.
         const aiConfig = {
-            publicPath: "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/",
-            debug: true, // This allows us to see errors in the browser console
-            model: 'small' // Use the smaller model for faster loading
+            publicPath: "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.5.5/dist/"
         };
 
         // Handle Image Upload
@@ -177,11 +175,13 @@
             // UI Update
             loader.style.display = 'flex';
             errorText.style.display = 'none';
+            document.querySelector('.spinner').style.display = 'block';
+            loadingText.style.display = 'block';
             aiBtn.disabled = true;
             loadingText.innerHTML = "Downloading AI Model...<br><span style='font-size:0.8em; color:#666;'>(This happens once)</span>";
 
             try {
-                // Call the AI with our specific config
+                // Execute AI with our fixed config
                 const blob = await removeBackground(originalUploadedImg.src, aiConfig);
                 const url = URL.createObjectURL(blob);
                 
@@ -197,13 +197,11 @@
             } catch (error) {
                 console.error("AI FAILED:", error);
                 
-                // Show user friendly error
-                loader.style.display = 'flex'; // Keep overlay up but show error
+                // Show Error
                 loadingText.style.display = 'none';
                 document.querySelector('.spinner').style.display = 'none';
-                
                 errorText.style.display = 'block';
-                errorText.innerHTML = `<strong>AI Error:</strong><br>${error.message}<br><br><button onclick="location.reload()" style="padding:5px;">Reload Page</button>`;
+                errorText.innerHTML = `<strong>Error:</strong> ${error.message}<br>Try refreshing the page or using a different browser.`;
                 
                 aiBtn.disabled = false;
             }
@@ -279,6 +277,7 @@
 
         dlSvg.addEventListener('click', () => {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            // Config for smoother vector lines
             const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2, mincolorratio: 0, colorquantcycles: 0 };
             const svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
             const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
