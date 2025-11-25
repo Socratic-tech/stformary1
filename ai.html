@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Silhouette Pro</title>
+    <style>
+        :root { --primary: #2563eb; --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #333; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        
+        h1 { margin-bottom: 5px; }
+        p { color: #64748b; margin-bottom: 25px; text-align: center; max-width: 600px; line-height: 1.5; }
+        
+        .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; width: 100%; max-width: 1100px; align-items: flex-start; }
+        
+        .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        
+        /* Canvas Container */
+        .preview-area { flex: 2; min-width: 300px; align-items: center; position: relative; }
+        canvas { max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px; background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%); background-size: 20px 20px; }
+        
+        /* Controls */
+        .controls-area { flex: 1; min-width: 280px; max-width: 350px; }
+        
+        .control-group { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
+        .control-group:last-child { border-bottom: none; }
+        
+        label { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-upload { background: #e2e8f0; color: #334155; margin-bottom: 10px; }
+        .btn-upload:hover { background: #cbd5e1; }
+        
+        .btn-ai { background: linear-gradient(135deg, #8b5cf6, #d946ef); color: white; margin-bottom: 20px; border: 1px solid transparent; }
+        .btn-ai:hover { opacity: 0.9; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
+        .btn-ai:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
+
+        .btn-download { background: var(--primary); color: white; opacity: 0.5; pointer-events: none; }
+        .btn-download:not([disabled]) { opacity: 1; pointer-events: auto; }
+        .btn-download:hover { background: #1d4ed8; }
+
+        #fileInput { display: none; }
+        
+        /* Loading Overlay */
+        .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border-radius: 8px; display: none; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <h1>👤 AI Silhouette Pro</h1>
+    <p>Upload a photo. Use <strong>AI Remove BG</strong> for complex backgrounds, or standard sliders for high-contrast photos.</p>
+
+    <div class="container">
+        
+        <div class="card controls-area">
+            <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
+                📂 Upload Photo
+            </button>
+            <input type="file" id="fileInput" accept="image/*">
+
+            <button id="aiBtn" class="btn btn-ai" disabled>
+                ✨ AI Remove Background
+            </button>
+
+            <div class="control-group">
+                <label>Threshold <span style="font-weight:normal; font-size:0.8em; color:#666;">(Manual Mode)</span></label>
+                <input type="range" id="threshold" min="0" max="255" value="128">
+            </div>
+
+            <div class="control-group">
+                <label>Cameo Tools</label>
+                
+                <label style="font-weight: normal;">
+                    <input type="checkbox" id="flip"> Flip Direction
+                </label>
+
+                <label style="font-weight: normal;">
+                    <input type="checkbox" id="oval"> Oval Frame
+                </label>
+                
+                <label style="font-weight: normal;">
+                    <input type="checkbox" id="invert"> Invert (White Shadow)
+                </label>
+            </div>
+
+            <button id="downloadBtn" class="btn btn-download" disabled>
+                ⬇ Download PNG
+            </button>
+        </div>
+
+        <div class="card preview-area">
+            <div id="loader" class="loading-overlay">
+                <div class="spinner"></div>
+                <div id="loadingText">Downloading AI Model...<br>(First run takes time)</div>
+            </div>
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script type="module">
+        import imglyRemoveBackground from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.0/+esm";
+
+        const fileInput = document.getElementById('fileInput');
+        const aiBtn = document.getElementById('aiBtn');
+        const thresholdSlider = document.getElementById('threshold');
+        const flipCheck = document.getElementById('flip');
+        const ovalCheck = document.getElementById('oval');
+        const invertCheck = document.getElementById('invert');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const downloadBtn = document.getElementById('downloadBtn');
+        const loader = document.getElementById('loader');
+        const loadingText = document.getElementById('loadingText');
+
+        let currentImg = new Image(); // The image currently being processed
+        let originalUploadedImg = null; // The raw upload (backup)
+        let isLoaded = false;
+        let isAiProcessed = false; // Track if we are using the AI cut-out or raw photo
+
+        // 1. Handle Image Upload
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    originalUploadedImg = img;
+                    currentImg = img; // Reset to raw image
+                    isLoaded = true;
+                    isAiProcessed = false;
+                    
+                    downloadBtn.disabled = false;
+                    aiBtn.disabled = false;
+                    
+                    // Reset slider for manual mode
+                    thresholdSlider.value = 128;
+                    thresholdSlider.disabled = false; 
+                    
+                    processImage();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // 2. Handle AI Background Removal
+        aiBtn.addEventListener('click', async () => {
+            if (!originalUploadedImg) return;
+
+            // Show Loader
+            loader.style.display = 'flex';
+            aiBtn.disabled = true;
+            loadingText.innerHTML = "Analysing Image...<br>Removing Background";
+
+            try {
+                // Run AI (this downloads the model on first run)
+                const blob = await imglyRemoveBackground(originalUploadedImg.src);
+                const url = URL.createObjectURL(blob);
+                
+                const aiImg = new Image();
+                aiImg.onload = () => {
+                    currentImg = aiImg; // Switch current source to AI result
+                    isAiProcessed = true;
+                    
+                    // In AI mode, we don't need manual thresholding usually, 
+                    // but we keep it available just in case.
+                    // We set threshold high because the background is now transparent (alpha 0)
+                    // so we only want to darken the opaque pixels.
+                    
+                    loader.style.display = 'none';
+                    aiBtn.disabled = false;
+                    processImage();
+                }
+                aiImg.src = url;
+
+            } catch (error) {
+                console.error(error);
+                alert("AI Error: " + error.message);
+                loader.style.display = 'none';
+                aiBtn.disabled = false;
+            }
+        });
+
+        // 3. Process Image (Render Pipeline)
+        function processImage() {
+            if (!isLoaded) return;
+
+            // Resize Canvas
+            canvas.width = currentImg.width;
+            canvas.height = currentImg.height;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // A. Draw Base Image (with Flip/Oval)
+            ctx.save();
+            ctx.clearRect(0, 0, w, h);
+            
+            if (ovalCheck.checked) {
+                ctx.beginPath();
+                ctx.ellipse(w/2, h/2, w/2, h/2, 0, 0, 2 * Math.PI);
+                ctx.clip();
+            }
+
+            if (flipCheck.checked) {
+                ctx.translate(w, 0);
+                ctx.scale(-1, 1);
+            }
+
+            ctx.drawImage(currentImg, 0, 0);
+            ctx.restore();
+
+            // B. Convert to Silhouette
+            const frame = ctx.getImageData(0, 0, w, h);
+            const data = frame.data;
+            const thresh = parseInt(thresholdSlider.value);
+            const isInverted = invertCheck.checked;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const alpha = data[i+3];
+                
+                // If pixel is fully transparent (removed by AI), skip it
+                if (alpha === 0) continue;
+
+                // If AI processed, we treat all non-transparent pixels as subject
+                // If Manual, we use brightness threshold
+                let isSubject = false;
+
+                if (isAiProcessed) {
+                    // For AI: If it has visibility, it's the person.
+                    // We check alpha > 10 to avoid soft edges looking dirty
+                    if (alpha > 50) isSubject = true;
+                } else {
+                    // Manual: Use Brightness
+                    const r = data[i];
+                    const g = data[i+1];
+                    const b = data[i+2];
+                    const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                    
+                    if (isInverted) {
+                        if (brightness > thresh) isSubject = true;
+                    } else {
+                        if (brightness < thresh) isSubject = true;
+                    }
+                }
+
+                if (isSubject) {
+                    // Make Solid Black (or White if inverted)
+                    if (isInverted && !isAiProcessed) {
+                         // Special case for manual invert logic
+                         // usually user wants white subject on dark background
+                         data[i] = 255; data[i+1] = 255; data[i+2] = 255; data[i+3] = 255;
+                    } else if (isInverted && isAiProcessed) {
+                         // AI mode Invert = White Silhouette
+                         data[i] = 255; data[i+1] = 255; data[i+2] = 255; data[i+3] = 255;
+                    } else {
+                         // Standard Black Silhouette
+                         data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255;
+                    }
+                } else {
+                    // Make transparent
+                    data[i+3] = 0;
+                }
+            }
+
+            ctx.putImageData(frame, 0, 0);
+        }
+
+        // 4. Listeners
+        [thresholdSlider, flipCheck, ovalCheck, invertCheck].forEach(el => {
+            el.addEventListener('input', processImage);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'ai-silhouette.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    </script>
+</body>
+</html>
