@@ -3,34 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silhouette Studio: Paper Cut</title>
+    <title>Projector Silhouette Tool</title>
     <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
     
     <style>
-        :root { --primary: #3b82f6; --bg: #f8fafc; --card: #ffffff; }
+        :root { --primary: #2563eb; --bg: #e2e8f0; --card: #ffffff; }
         body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #334155; display: flex; flex-direction: column; align-items: center; padding: 30px 20px; margin: 0; }
         
-        h1 { margin-bottom: 5px; color: #0f172a; }
+        h1 { margin-bottom: 5px; color: #0f172a; font-weight: 800; letter-spacing: -0.5px; }
         p { color: #64748b; margin-bottom: 35px; text-align: center; max-width: 600px; line-height: 1.5; }
         
         .container { display: flex; flex-wrap: wrap; gap: 25px; justify-content: center; width: 100%; max-width: 1200px; align-items: flex-start; }
         
-        .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+        .card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
         
-        /* Canvas */
-        .preview-area { flex: 2; min-width: 320px; align-items: center; }
-        canvas { max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px; background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%); background-size: 20px 20px; }
+        /* Canvas Area - Styled to look like a Projector Screen */
+        .preview-area { flex: 2; min-width: 320px; align-items: center; justify-content: center; display: flex; background: #333; padding: 20px; border-radius: 12px; }
+        
+        canvas { 
+            max-width: 100%; 
+            height: auto; 
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); /* Glow effect */
+            background: white;
+        }
         
         /* Controls */
         .controls-area { flex: 1; min-width: 300px; max-width: 380px; }
         
-        .section-header { background: #f1f5f9; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; }
+        .section-header { 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            color: #94a3b8; 
+            margin-bottom: 15px; 
+            font-weight: 700; 
+            border-bottom: 1px solid #f1f5f9; 
+            padding-bottom: 5px;
+        }
+        
         .control-group { margin-bottom: 25px; }
         
         label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
         input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); margin-bottom: 5px; }
-        input[type="color"] { border: 1px solid #e2e8f0; border-radius: 4px; width: 50px; height: 30px; cursor: pointer; background: none; padding: 2px;}
-        input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+        input[type="checkbox"] { accent-color: var(--primary); width: 18px; height: 18px; cursor: pointer; }
+
+        /* Mode Toggles */
+        .mode-toggle { display: flex; gap: 0; background: #f1f5f9; padding: 4px; border-radius: 8px; margin-bottom: 20px; }
+        .mode-btn { flex: 1; border: none; background: transparent; padding: 8px; font-weight: 600; color: #64748b; cursor: pointer; border-radius: 6px; transition: 0.2s; font-size: 0.9rem; }
+        .mode-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
         .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-upload { background: #eff6ff; color: #1d4ed8; border: 1px dashed #bfdbfe; margin-bottom: 25px; }
@@ -39,90 +59,66 @@
         .download-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
         .btn-dl { color: white; opacity: 0.5; pointer-events: none; }
         .btn-dl:not([disabled]) { opacity: 1; pointer-events: auto; }
-        .btn-png { background: #334155; } .btn-png:hover { background: #1e293b; }
+        .btn-png { background: #0f172a; } .btn-png:hover { background: #334155; }
         .btn-svg { background: #059669; } .btn-svg:hover { background: #047857; }
 
         #fileInput { display: none; }
         .val-badge { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight: normal; }
-        
-        /* Highlight for the new feature */
-        .highlight-option { background: #fff7ed; border: 1px solid #ffedd5; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
-        
-        /* Puppet Stick sub-controls */
-        #rodControls { margin-top: 10px; padding-top: 10px; border-top: 1px solid #fed7aa; display: none; }
     </style>
 </head>
 <body>
 
-    <h1>Silhouette Studio: Paper Cut</h1>
-    <p>Turn photos into <strong>Paper Cutouts</strong> on a backlit screen.</p>
+    <h1>Projector Silhouette Tool</h1>
+    <p>Simulates the look of a subject casting a shadow on a rear-projection screen.</p>
 
     <div class="container">
         
         <div class="card controls-area">
             <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
-                📂 Upload Photo
+                📂 Upload Student Photo
             </button>
             <input type="file" id="fileInput" accept="image/*">
 
-            <div class="control-group">
-                <div class="section-header">1. Clean Up Image</div>
-                <label>Contrast Boost <span class="val-badge" id="contrastVal">0%</span></label>
-                <input type="range" id="contrast" min="0" max="200" value="0">
-                
-                <label>Edge Smoothing <span class="val-badge" id="blurVal">0px</span></label>
-                <input type="range" id="blur" min="0" max="5" value="0.5" step="0.5">
+            <div class="section-header">Tracing Mode</div>
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="btnShadow" onclick="setMode('shadow')">Cast Shadow</button>
+                <button class="mode-btn" id="btnTrace" onclick="setMode('trace')">Pencil Trace</button>
             </div>
 
             <div class="control-group">
-                <div class="section-header">2. Create Solid Fill</div>
-                <label>Threshold (Cutoff) <span class="val-badge" id="threshVal">128</span></label>
+                <div class="section-header">1. Image Adjust</div>
+                <label>Contrast <span class="val-badge" id="contrastVal">0%</span></label>
+                <input type="range" id="contrast" min="0" max="200" value="20">
+                
+                <label>Shadow Focus (Blur) <span class="val-badge" id="blurVal">0px</span></label>
+                <input type="range" id="blur" min="0" max="8" value="2" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <div class="section-header">2. Sensitivity</div>
+                <label>Threshold <span class="val-badge" id="threshVal">128</span></label>
                 <input type="range" id="threshold" min="0" max="255" value="128">
 
-                <div style="display:flex; justify-content:space-between; margin-top:15px; align-items:center;">
-                    <label style="font-weight:normal; margin:0;"><input type="checkbox" id="invert"> Invert Color</label>
-                    <input type="color" id="colorPicker" value="#1a1a1a" title="Paper Color">
+                <div style="margin-top: 15px;">
+                    <label style="font-weight:normal; justify-content: flex-start; gap: 10px;">
+                        <input type="checkbox" id="invert"> Subject is Lighter than Wall
+                    </label>
                 </div>
             </div>
 
             <div class="control-group">
-                <div class="section-header">3. Paper Cut FX</div>
-                
-                <div class="highlight-option">
-                    <label style="margin:0; color:#9a3412; cursor:pointer;">
-                        <span style="display:flex; align-items:center; gap:8px;">
-                            <input type="checkbox" id="paperMode" checked> 
-                            <strong>Paper Cut Mode</strong>
-                        </span>
-                    </label>
-                    <div style="font-size:0.75rem; color:#c2410c; margin-top:5px; margin-left:24px; line-height:1.3;">
-                        Adds backlit screen, construction paper texture, and sharp edges.
-                    </div>
-                </div>
-
-                <div class="highlight-option" style="background:#f0fdf4; border-color:#bbf7d0;">
-                    <label style="margin:0; color:#166534; cursor:pointer;">
-                        <span style="display:flex; align-items:center; gap:8px;">
-                            <input type="checkbox" id="addStick"> 
-                            <strong>Add Puppet Rod</strong>
-                        </span>
-                    </label>
-                    
-                    <div id="rodControls">
-                        <label style="color:#166534; font-size:0.8rem;">Rod Position</label>
-                        <input type="range" id="rodPos" min="0" max="100" value="50">
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 15px; margin-top: 15px;">
-                    <label style="font-weight:normal"><input type="checkbox" id="flip"> Flip Horiz.</label>
-                    <label style="font-weight:normal"><input type="checkbox" id="oval"> Oval Crop</label>
-                </div>
+                <div class="section-header">3. Projector Setup</div>
+                <label style="font-weight:normal; justify-content: flex-start; gap: 10px;">
+                    <input type="checkbox" id="flip" checked> Flip Horizontal (Rear View)
+                </label>
+                <label style="font-weight:normal; justify-content: flex-start; gap: 10px; margin-top:10px;">
+                    <input type="checkbox" id="projectorGlow" checked> Projector Hotspot
+                </label>
             </div>
 
             <div class="download-group">
-                <button id="dlPng" class="btn btn-dl btn-png" disabled>⬇ PNG (Image)</button>
-                <button id="dlSvg" class="btn btn-dl btn-svg" disabled>⬇ SVG (Vector)</button>
+                <button id="dlPng" class="btn btn-dl btn-png" disabled>⬇ PNG</button>
+                <button id="dlSvg" class="btn btn-dl btn-svg" disabled>⬇ SVG</button>
             </div>
         </div>
 
@@ -132,58 +128,34 @@
     </div>
 
     <script>
+        // State
+        let currentMode = 'shadow'; // 'shadow' or 'trace'
+        let currentImg = new Image();
+        let isLoaded = false;
+
+        // UI Elements
         const fileInput = document.getElementById('fileInput');
         const contrastSlider = document.getElementById('contrast');
         const blurSlider = document.getElementById('blur');
         const thresholdSlider = document.getElementById('threshold');
-        const colorPicker = document.getElementById('colorPicker');
         const flipCheck = document.getElementById('flip');
-        const ovalCheck = document.getElementById('oval');
         const invertCheck = document.getElementById('invert');
+        const glowCheck = document.getElementById('projectorGlow');
         
-        // FX
-        const paperModeCheck = document.getElementById('paperMode');
-        const addStickCheck = document.getElementById('addStick');
-        const rodPosSlider = document.getElementById('rodPos');
-        const rodControls = document.getElementById('rodControls');
-
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const dlPng = document.getElementById('dlPng');
         const dlSvg = document.getElementById('dlSvg');
 
-        // --- Paper Texture Generator ---
-        // Generates a grainy cardstock noise pattern
-        let patternCanvas = document.createElement('canvas');
-        patternCanvas.width = 200;
-        patternCanvas.height = 200;
-        let pCtx = patternCanvas.getContext('2d');
-        function generatePaperNoise(colorHex) {
-            pCtx.clearRect(0,0,200,200);
-            pCtx.fillStyle = colorHex;
-            pCtx.fillRect(0,0,200,200);
-            
-            // Add Grain
-            for (let i = 0; i < 10000; i++) {
-                const x = Math.random() * 200;
-                const y = Math.random() * 200;
-                // Add tiny variations (light and dark) to simulate fiber
-                pCtx.fillStyle = Math.random() > 0.5 ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)";
-                pCtx.fillRect(x, y, 1.5, 1.5);
-            }
-        }
-        generatePaperNoise("#1a1a1a");
-
-        function updateBadges() {
-            document.getElementById('contrastVal').innerText = contrastSlider.value + '%';
-            document.getElementById('blurVal').innerText = blurSlider.value + 'px';
-            document.getElementById('threshVal').innerText = thresholdSlider.value;
-            rodControls.style.display = addStickCheck.checked ? 'block' : 'none';
+        // Mode Switcher Logic
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnShadow').className = mode === 'shadow' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btnTrace').className = mode === 'trace' ? 'mode-btn active' : 'mode-btn';
+            processImage();
         }
 
-        let currentImg = new Image();
-        let isLoaded = false;
-
+        // Upload Handler
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -195,11 +167,6 @@
                     isLoaded = true;
                     dlPng.disabled = false;
                     dlSvg.disabled = false;
-                    // Paper Cut Defaults
-                    thresholdSlider.value = 128;
-                    contrastSlider.value = 25;
-                    blurSlider.value = 0.5; // Very low blur for Sharp paper edges
-                    updateBadges();
                     processImage();
                 }
                 img.src = event.target.result;
@@ -207,178 +174,194 @@
             reader.readAsDataURL(file);
         });
 
-        // --- MAIN RENDERER ---
+        // --- MAIN PIPELINE ---
         function processImage() {
             if (!isLoaded) return;
             
+            // 1. Setup Canvas
             canvas.width = currentImg.width;
             canvas.height = currentImg.height;
             const w = canvas.width;
             const h = canvas.height;
-            const isPaperMode = paperModeCheck.checked;
 
-            // 1. Create Threshold Mask (Temp Canvas)
-            const tempCvs = document.createElement('canvas');
-            tempCvs.width = w;
-            tempCvs.height = h;
-            const tCtx = tempCvs.getContext('2d');
+            // 2. Create the "Mask" (The shape of the person)
+            // We do this in memory on a temp canvas
+            const maskCvs = document.createElement('canvas');
+            maskCvs.width = w;
+            maskCvs.height = h;
+            const mCtx = maskCvs.getContext('2d');
 
-            tCtx.save();
-            if (ovalCheck.checked) {
-                tCtx.beginPath(); tCtx.ellipse(w/2, h/2, w/2, h/2, 0, 0, 2 * Math.PI); tCtx.clip();
-            }
+            // Apply Transforms (Flip)
+            mCtx.save();
             if (flipCheck.checked) {
-                tCtx.translate(w, 0); tCtx.scale(-1, 1);
+                mCtx.translate(w, 0); mCtx.scale(-1, 1);
             }
+            
+            // Apply Filters (Contrast + Blur)
+            // Note: We use blur here to soften the details BEFORE thresholding
+            // This helps smooth out hair/wrinkles like a real shadow would
             const contrast = 100 + parseInt(contrastSlider.value);
-            const blur = parseFloat(blurSlider.value); 
-            tCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
-            tCtx.drawImage(currentImg, 0, 0);
-            tCtx.restore();
+            const blur = parseFloat(blurSlider.value);
+            mCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
+            
+            mCtx.drawImage(currentImg, 0, 0);
+            mCtx.restore();
 
-            // Thresholding
-            const frame = tCtx.getImageData(0, 0, w, h);
+            // Thresholding (Convert to pure Black/Transparent)
+            const frame = mCtx.getImageData(0, 0, w, h);
             const data = frame.data;
             const thresh = parseInt(thresholdSlider.value);
             const isInverted = invertCheck.checked;
 
             for (let i = 0; i < data.length; i += 4) {
-                const alpha = data[i+3];
-                if (alpha === 0) continue; 
                 const brightness = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                let isSubject = false;
-
-                if (isInverted) { if (brightness > thresh) isSubject = true; } 
-                else { if (brightness < thresh) isSubject = true; }
+                let isSubject = (isInverted) ? (brightness > thresh) : (brightness < thresh);
 
                 if (isSubject) {
-                    data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255; // Solid Black Mask
+                    // Subject is SOLID BLACK
+                    data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255;
                 } else {
-                    data[i+3] = 0; // Transparent
+                    // Background is TRANSPARENT (for now)
+                    data[i+3] = 0;
                 }
             }
-            tCtx.putImageData(frame, 0, 0);
+            mCtx.putImageData(frame, 0, 0);
 
-            // 2. Final Composition
+            // 3. Render to Main Canvas
             ctx.clearRect(0, 0, w, h);
 
-            if (isPaperMode) {
-                // Layer A: Backlight Screen
-                // Warm center, slightly darker corners
-                const gradient = ctx.createRadialGradient(w/2, h/2, w/4, w/2, h/2, w);
-                gradient.addColorStop(0, "#fffef5"); // Center (Bright Warm)
-                gradient.addColorStop(1, "#e6e1d5"); // Corners (Shadowy Screen)
+            // A. Draw "Projector Light" Background
+            if (glowCheck.checked) {
+                const gradient = ctx.createRadialGradient(w/2, h/2, w/5, w/2, h/2, w);
+                gradient.addColorStop(0, "#ffffff"); // Center Hotspot
+                gradient.addColorStop(1, "#e2e2e2"); // Slight falloff
                 ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, w, h);
+            } else {
+                ctx.fillStyle = "#ffffff";
             }
+            ctx.fillRect(0, 0, w, h);
 
-            // Layer B: The Puppet Rod (Must go BEHIND the puppet)
-            if (addStickCheck.checked) {
-                const rodX = (rodPosSlider.value / 100) * w;
-                ctx.beginPath();
-                ctx.moveTo(rodX, h); // Start at bottom
-                // Draw up to middle of screen (ish)
-                ctx.lineTo(rodX, h * 0.4); 
-                
-                // Styling the rod to look like a dowel/stick
-                ctx.lineWidth = w * 0.015; // Responsive width
-                ctx.lineCap = "round";
-                ctx.strokeStyle = "#111";
-                ctx.stroke();
-            }
-
-            // Layer C: The Silhouette (Textured)
-            if (isPaperMode) {
-                // Update noise color to match user selection
-                generatePaperNoise(colorPicker.value);
-                const pattern = ctx.createPattern(patternCanvas, 'repeat');
-                
-                // Composite Logic:
-                // 1. Draw the Black Mask (from Temp Canvas)
-                ctx.drawImage(tempCvs, 0, 0);
-                
-                // 2. Composite the Pattern ONLY where the mask exists
-                ctx.globalCompositeOperation = "source-in";
-                ctx.fillStyle = pattern;
-                ctx.fillRect(0, 0, w, h);
-                
-                // 3. Reset composite
-                ctx.globalCompositeOperation = "source-over";
+            // B. Draw Subject based on Mode
+            if (currentMode === 'shadow') {
+                // Mode 1: Solid Shadow (Projector Style)
+                // We draw the mask directly. 
+                // To simulate a real shadow, we can lower opacity slightly (95%)
+                ctx.globalAlpha = 0.95;
+                ctx.drawImage(maskCvs, 0, 0);
+                ctx.globalAlpha = 1.0;
 
             } else {
-                // Standard mode: Just fill with solid color
-                // We need to re-color the temp canvas because it's black currently
-                // Hack: Just draw the mask and apply globalComposite "source-in" with solid color
-                ctx.drawImage(tempCvs, 0, 0);
-                ctx.globalCompositeOperation = "source-in";
-                ctx.fillStyle = colorPicker.value;
-                ctx.fillRect(0,0,w,h);
-                ctx.globalCompositeOperation = "source-over";
+                // Mode 2: Pencil Trace (Outline Style)
+                // We use edge detection on the mask to simulate the traced line
+                drawOutline(maskCvs, w, h);
             }
+            
+            // Update Badges
+            document.getElementById('contrastVal').innerText = contrastSlider.value + '%';
+            document.getElementById('blurVal').innerText = blurSlider.value + 'px';
+            document.getElementById('threshVal').innerText = thresholdSlider.value;
+        }
+
+        // Helper: Quick Outline Effect for Canvas Preview
+        function drawOutline(maskCanvas, w, h) {
+            // Get the solid black mask data
+            const mCtx = maskCanvas.getContext('2d');
+            const imgData = mCtx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+            
+            // We create a new buffer for the outline
+            const outlineData = ctx.createImageData(w, h);
+            const out = outlineData.data;
+
+            // Simple Edge Detection: Check neighbors
+            // If a pixel is transparent but has a black neighbor, it's an edge.
+            for (let y = 1; y < h-1; y++) {
+                for (let x = 1; x < w-1; x++) {
+                    const i = (y * w + x) * 4;
+                    
+                    // If current pixel is transparent...
+                    if (data[i+3] === 0) {
+                        // Check neighbors (Top, Bottom, Left, Right)
+                        const top = ((y-1) * w + x) * 4;
+                        const bot = ((y+1) * w + x) * 4;
+                        const left = (y * w + (x-1)) * 4;
+                        const right = (y * w + (x+1)) * 4;
+
+                        if (data[top+3] > 0 || data[bot+3] > 0 || data[left+3] > 0 || data[right+3] > 0) {
+                            // This is an edge! Draw grey pencil line.
+                            out[i] = 80;   // R
+                            out[i+1] = 80; // G
+                            out[i+2] = 80; // B
+                            out[i+3] = 255; // Alpha
+                        }
+                    }
+                }
+            }
+            ctx.putImageData(outlineData, 0, 0);
         }
 
         // Listeners
-        const controls = [contrastSlider, blurSlider, thresholdSlider, colorPicker, flipCheck, ovalCheck, invertCheck, paperModeCheck, addStickCheck, rodPosSlider];
-        controls.forEach(el => el.addEventListener('input', () => {
-            updateBadges();
-            processImage();
-        }));
+        [contrastSlider, blurSlider, thresholdSlider, flipCheck, invertCheck, glowCheck].forEach(el => {
+            el.addEventListener('input', processImage);
+        });
 
-        // Downloads
+        // Download PNG (What you see is what you get)
         dlPng.addEventListener('click', () => {
             const link = document.createElement('a');
-            link.download = 'paper-cut-puppet.png';
+            link.download = currentMode === 'shadow' ? 'projector-shadow.png' : 'pencil-trace.png';
             link.href = canvas.toDataURL();
             link.click();
         });
 
+        // Download SVG (Vector)
         dlSvg.addEventListener('click', () => {
-            // SVG logic: We trace the mask (tempCvs logic). 
-            // Stick and background are excluded from SVG (usually desirable for cutting machines)
-            const tempCvs = document.createElement('canvas');
-            tempCvs.width = canvas.width;
-            tempCvs.height = canvas.height;
-            const tCtx = tempCvs.getContext('2d');
+            // 1. Get the Mask (Solid Shape) again
+            // We need a pure black/white source for tracing
+            const maskCvs = document.createElement('canvas');
+            maskCvs.width = canvas.width;
+            maskCvs.height = canvas.height;
+            const mCtx = maskCvs.getContext('2d');
             
-            // Re-run threshold logic for clean trace
-            tCtx.save();
-            if (ovalCheck.checked) { tCtx.beginPath(); tCtx.ellipse(canvas.width/2, canvas.height/2, canvas.width/2, canvas.height/2, 0, 0, 2 * Math.PI); tCtx.clip(); }
-            if (flipCheck.checked) { tCtx.translate(canvas.width, 0); tCtx.scale(-1, 1); }
+            // Re-apply transforms/filters exactly like processImage
+            mCtx.save();
+            if (flipCheck.checked) { mCtx.translate(canvas.width, 0); mCtx.scale(-1, 1); }
             const contrast = 100 + parseInt(contrastSlider.value);
-            const blur = parseFloat(blurSlider.value); 
-            tCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
-            tCtx.drawImage(currentImg, 0, 0);
-            tCtx.restore();
-
-            const frame = tCtx.getImageData(0, 0, canvas.width, canvas.height);
+            const blur = parseFloat(blurSlider.value);
+            mCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
+            mCtx.drawImage(currentImg, 0, 0);
+            mCtx.restore();
+            
+            // Re-apply threshold
+            const frame = mCtx.getImageData(0, 0, canvas.width, canvas.height);
             const data = frame.data;
             const thresh = parseInt(thresholdSlider.value);
             const isInverted = invertCheck.checked;
             for (let i = 0; i < data.length; i += 4) {
-                 if (data[i+3] === 0) continue;
-                 const brightness = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                 let isSubject = (isInverted) ? (brightness > thresh) : (brightness < thresh);
-                 if (isSubject) {
-                     data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255;
-                 } else {
-                     data[i+3] = 0;
-                 }
-             }
-             tCtx.putImageData(frame, 0, 0);
+                 const b = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+                 if ((isInverted ? b > thresh : b < thresh)) {
+                     data[i]=0; data[i+1]=0; data[i+2]=0; data[i+3]=255;
+                 } else { data[i+3]=0; }
+            }
+            mCtx.putImageData(frame, 0, 0);
+            
+            // 2. Vectorize
+            const imageData = mCtx.getImageData(0, 0, canvas.width, canvas.height);
+            const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2 };
+            let svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
 
-            const imageData = tCtx.getImageData(0, 0, canvas.width, canvas.height);
-            const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2, mincolorratio: 0, colorquantcycles: 0 };
-            const svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
+            // 3. Modify SVG based on Mode
+            if (currentMode === 'trace') {
+                // Swap fill for stroke
+                svgStr = svgStr.replace(/fill="rgb\(0,0,0\)"/g, 'fill="none" stroke="rgb(50,50,50)" stroke-width="2"');
+            }
 
             const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.download = 'paper-cut.svg';
+            link.download = currentMode === 'shadow' ? 'shadow-cut.svg' : 'outline-trace.svg';
             link.href = url;
             link.click();
         });
-
-        updateBadges();
     </script>
 </body>
 </html>
