@@ -530,19 +530,19 @@
       </div>
     </div>
 
-    <!-- STEP 4: Projector Setup & Export -->
+    <!-- STEP 4: Projector Setup & Crop -->
     <div class="panel">
       <div class="panel-header">
         <div>
           <div class="step-label">Step 4</div>
-          <div class="panel-title">Projector Setup</div>
+          <div class="panel-title">Projector Setup & Crop</div>
         </div>
         <button type="button" class="tooltip-btn">
           ?
           <span>
             Use <strong>Flip Horizontal</strong> if your projector is behind the tracing paper
             (rear projection). Hotspot brightens the center slightly to fight dim edges.
-            Round crop creates a circle “cameo” silhouette in the middle.
+            Crop style lets you choose full frame, circle cameo, or square cameo.
           </span>
         </button>
       </div>
@@ -561,14 +561,31 @@
         <input id="hotspot" type="checkbox" />
       </div>
 
-      <div class="toggle-row">
-        <label for="roundCrop">
-          Round Crop (Circle Cameo)
+      <div class="field-group">
+        <label for="cropShape">
+          <span>Crop Style</span>
         </label>
-        <input id="roundCrop" type="checkbox" />
+        <select id="cropShape" class="trace-mode-select">
+          <option value="none">No Crop (full frame)</option>
+          <option value="circle">Circle Cameo</option>
+          <option value="square">Square Cameo</option>
+        </select>
+        <div class="hint">
+          Use cameos for framed art pieces; full frame for big wall tracings.
+        </div>
       </div>
-      <div class="hint">
-        Turn on <strong>Round Crop</strong> if you want a circular portrait instead of a full rectangle.
+
+      <div class="field-group">
+        <label for="cropSize">
+          <span>Crop Size</span>
+          <span class="value-pill" id="cropSizeValue">90%</span>
+        </label>
+        <div class="slider">
+          <input id="cropSize" type="range" min="50" max="100" value="90" />
+        </div>
+        <div class="hint">
+          Smaller % = tighter around the head. Larger % = more shoulders and background in the cameo.
+        </div>
       </div>
 
       <div class="button-row" style="margin-top:0.75rem;">
@@ -646,7 +663,9 @@
     const subjectLighterCheckbox = document.getElementById('subjectLighter');
     const flipHorizontalCheckbox = document.getElementById('flipHorizontal');
     const hotspotCheckbox = document.getElementById('hotspot');
-    const roundCropCheckbox = document.getElementById('roundCrop');
+    const cropShapeSelect = document.getElementById('cropShape');
+    const cropSizeSlider = document.getElementById('cropSize');
+    const cropSizeValue = document.getElementById('cropSizeValue');
 
     const resetImageAdjustBtn = document.getElementById('resetImageAdjust');
     const resetSensitivityBtn = document.getElementById('resetSensitivity');
@@ -676,9 +695,15 @@
       subjectLighter: false, // default: student darker than light background
       flipHorizontal: false,
       hotspot: false,
-      roundCrop: false,
+      cropShape: 'none', // 'none' | 'circle' | 'square'
+      cropSize: 0.9, // fraction of min dimension
       traceMode: 'shadow'
     };
+
+    function updateCropControlsDisabled() {
+      const disabled = state.cropShape === 'none';
+      cropSizeSlider.disabled = disabled;
+    }
 
     function updateLabels() {
       const c = state.contrast;
@@ -686,11 +711,13 @@
       contrastValue.textContent = sign + c + '%';
       blurValue.textContent = state.blur.toFixed(1) + 'px';
       thresholdValue.textContent = state.threshold;
+      cropSizeValue.textContent = Math.round(state.cropSize * 100) + '%';
       metaMode.textContent =
         'Mode: ' +
         (state.traceMode === 'shadow'
           ? 'Cast Shadow Pencil Trace'
           : 'Bold Outline Only (edge trace)');
+      updateCropControlsDisabled();
     }
 
     function setDefaultsImageAdjust() {
@@ -712,10 +739,13 @@
     function setDefaultsProjector() {
       state.flipHorizontal = false;
       state.hotspot = false;
-      state.roundCrop = false;
+      state.cropShape = 'none';
+      state.cropSize = 0.9;
       flipHorizontalCheckbox.checked = false;
       hotspotCheckbox.checked = false;
-      roundCropCheckbox.checked = false;
+      cropShapeSelect.value = 'none';
+      cropSizeSlider.value = '90';
+      updateLabels();
     }
 
     function resetAll() {
@@ -793,20 +823,31 @@
       }
     }
 
-    // Apply round crop (white outside circle)
-    function applyRoundCrop(imgData, w, h) {
+    // Apply adjustable crop (circle or square cameo)
+    function applyCrop(imgData, w, h) {
+      if (state.cropShape === 'none') return;
+
       const data = imgData.data;
       const cx = w / 2;
       const cy = h / 2;
-      const radius = Math.min(w, h) * 0.47;
-      const r2 = radius * radius;
+      const minDim = Math.min(w, h);
+      const halfSize = (minDim * state.cropSize) / 2;
+      const r2 = halfSize * halfSize;
 
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           const dx = x - cx;
           const dy = y - cy;
-          const dist2 = dx * dx + dy * dy;
-          if (dist2 > r2) {
+          let keep = false;
+
+          if (state.cropShape === 'circle') {
+            const dist2 = dx * dx + dy * dy;
+            keep = dist2 <= r2;
+          } else if (state.cropShape === 'square') {
+            keep = Math.abs(dx) <= halfSize && Math.abs(dy) <= halfSize;
+          }
+
+          if (!keep) {
             const idx = (y * w + x) * 4;
             data[idx] = 255;
             data[idx + 1] = 255;
@@ -936,10 +977,8 @@
         data = imgData.data;
       }
 
-      // Round crop (white outside circle)
-      if (state.roundCrop) {
-        applyRoundCrop(imgData, w, h);
-      }
+      // Apply crop (circle or square cameo)
+      applyCrop(imgData, w, h);
 
       ctxPreview.putImageData(imgData, 0, 0);
 
@@ -1038,8 +1077,15 @@
       processImage();
     });
 
-    roundCropCheckbox.addEventListener('change', () => {
-      state.roundCrop = roundCropCheckbox.checked;
+    cropShapeSelect.addEventListener('change', () => {
+      state.cropShape = cropShapeSelect.value;
+      updateLabels();
+      processImage();
+    });
+
+    cropSizeSlider.addEventListener('input', () => {
+      state.cropSize = parseInt(cropSizeSlider.value, 10) / 100;
+      updateLabels();
       processImage();
     });
 
