@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyTrace Pro: Auto-Detect</title>
+    <title>EasyTrace Pro</title>
     <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
     
     <style>
         :root {
-            --primary: #4f46e5;       
+            --primary: #4f46e5;       /* Friendly Indigo */
             --primary-hover: #4338ca;
-            --bg-page: #f3f4f6;       
-            --bg-card: #ffffff;      
-            --text-main: #1f2937;    
-            --text-sub: #6b7280;      
+            --bg-page: #f3f4f6;       /* Soft Gray */
+            --bg-card: #ffffff;       /* Pure White */
+            --text-main: #1f2937;     /* Soft Black */
+            --text-sub: #6b7280;      /* Grey Text */
             --border: #e5e7eb;
             --radius: 16px;
         }
@@ -98,6 +98,26 @@
             border-radius: 12px;
             font-size: 0.8rem;
             color: var(--text-sub);
+        }
+
+        /* Text Input (New for Name) */
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: var(--text-main);
+            background: #f9fafb;
+            outline: none;
+            transition: 0.2s;
+            margin-bottom: 12px;
+        }
+        .text-input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
         /* Friendly Sliders */
@@ -307,7 +327,10 @@
         <div class="controls-container">
             
             <div class="step-group">
-                <div class="step-header"><span class="step-number">1</span> Upload</div>
+                <div class="step-header"><span class="step-number">1</span> Student Info</div>
+                
+                <input type="text" id="studentName" class="text-input" placeholder="Student First Name">
+                
                 <div class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     <span style="font-size: 24px;">📷</span>
                     <span>Choose Photo</span>
@@ -395,7 +418,7 @@
         <div id="emptyState" class="empty-state">
             <span class="emoji-icon">👋</span>
             <h2>Let's trace something!</h2>
-            <p>Upload a photo on the left to get started.</p>
+            <p>Enter the student's name and upload a photo.</p>
         </div>
         
         <div class="canvas-card" id="canvasCard" style="display:none;">
@@ -416,6 +439,7 @@
         const toastMsg = document.getElementById('toastMsg');
 
         // Inputs
+        const studentNameIn = document.getElementById('studentName');
         const threshIn = document.getElementById('threshold');
         const blurIn = document.getElementById('blur');
         const cropIn = document.getElementById('crop');
@@ -423,7 +447,7 @@
         const hotspotIn = document.getElementById('hotspot');
         const contrastIn = document.getElementById('contrast');
         const cropShapeIn = document.getElementById('cropShape');
-        const invertIn = document.getElementById('invert'); // NOW VISIBLE in UI
+        const invertIn = document.getElementById('invert'); 
 
         // Buttons
         const tabShadow = document.getElementById('tabShadow');
@@ -462,9 +486,16 @@
             setTimeout(() => toast.classList.remove('show'), 4000);
         }
 
+        // Helper to get formatted filename
+        function getFilename(ext) {
+            const rawName = studentNameIn.value.trim();
+            // Sanitize name: remove non-alphanumeric, replace spaces with dashes, lowercase
+            const safeName = rawName ? rawName.replace(/[^a-z0-9]/gi, '-').toLowerCase() : 'student';
+            return `${safeName}-trace.${ext}`;
+        }
+
         // --- AUTO DETECT LOGIC ---
         function detectBackground(img) {
-            // Create a small canvas to sample the image
             const c = document.createElement('canvas');
             c.width = 50; c.height = 50;
             const tCtx = c.getContext('2d');
@@ -474,10 +505,8 @@
             let totalBrightness = 0;
             let count = 0;
 
-            // Sample the outer edges (perimeter)
             for(let y=0; y<50; y++){
                 for(let x=0; x<50; x++){
-                    // Check if we are on the edge (first 5px or last 5px)
                     if(x < 5 || x > 45 || y < 5 || y > 45) {
                         const idx = (y*50 + x)*4;
                         const b = 0.299*data[idx] + 0.587*data[idx+1] + 0.114*data[idx+2];
@@ -486,12 +515,7 @@
                     }
                 }
             }
-            
             const avg = totalBrightness / count;
-            
-            // Logic: 
-            // If Avg < 100, Background is Dark -> We need to INVERT (Subject is lighter)
-            // If Avg > 100, Background is Light -> Standard (Subject is darker)
             
             if(avg < 100) {
                 invertIn.checked = true;
@@ -567,7 +591,6 @@
             canvas.width = cropW; canvas.height = cropH;
             ctx.clearRect(0,0,cropW, cropH);
             
-            // Draw & Filter
             ctx.save();
             if (flipIn.checked) { ctx.translate(cropW, 0); ctx.scale(-1, 1); }
             const contrast = 100 + parseInt(contrastIn.value);
@@ -577,11 +600,10 @@
             ctx.restore();
             ctx.filter = 'none';
 
-            // Pixel Ops
             let imgData = ctx.getImageData(0, 0, cropW, cropH);
             let data = imgData.data;
             const thresh = parseInt(threshIn.value);
-            const isInverted = invertIn.checked; // Uses the auto-detected or user value
+            const isInverted = invertIn.checked; 
 
             if (traceMode === 'shadow') {
                 for (let i = 0; i < data.length; i += 4) {
@@ -620,7 +642,6 @@
                 }
             }
 
-            // Hotspot
             if (hotspotIn.checked) {
                 const cx = cropW/2, cy = cropH/2, maxDist = Math.sqrt(cx*cx + cy*cy);
                 for(let y=0; y<cropH; y++){
@@ -653,9 +674,7 @@
                     dlPng.disabled = false;
                     dlSvg.disabled = false;
                     
-                    // Run Auto Detection
                     detectBackground(img);
-                    
                     processImage();
                 }
                 img.src = event.target.result;
@@ -669,9 +688,11 @@
             processImage();
         }));
 
+        // --- DOWNLOADS WITH NAMING ---
+
         dlPng.addEventListener('click', () => {
             const link = document.createElement('a');
-            link.download = 'easy-trace.png';
+            link.download = getFilename('png'); // Use student name
             link.href = canvas.toDataURL();
             link.click();
         });
@@ -686,7 +707,7 @@
             const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.download = 'easy-trace-vector.svg';
+            link.download = getFilename('svg'); // Use student name
             link.href = url;
             link.click();
         });
