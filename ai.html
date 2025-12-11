@@ -400,7 +400,7 @@
 <header>
   <div>
     <h1>Projector Trace Tool</h1>
-    <p>Turn student photos into projector-friendly tracing silhouettes and outlines.</p>
+    <p>Best results: student in side profile against a light wall.</p>
   </div>
   <p>Steps: Upload → Adjust → Threshold → Project → Trace</p>
 </header>
@@ -421,7 +421,9 @@
           Choose Image
         </label>
         <input id="fileInput" type="file" accept="image/*" />
-        <div class="hint">Bright side-lighting works best. Head and shoulders only if possible.</div>
+        <div class="hint">
+          Take a side silhouette with the student darker than the wall (light background).
+        </div>
       </div>
 
       <div class="field-group">
@@ -433,7 +435,7 @@
           <option value="outline">Bold Outline Only (edge trace)</option>
         </select>
         <div class="hint">
-          Try <strong>Cast Shadow</strong> first. If it’s too solid, switch to <strong>Bold Outline</strong>.
+          Use <strong>Cast Shadow</strong> for full silhouette. Switch to <strong>Bold Outline</strong> if you want just the contour.
         </div>
       </div>
     </div>
@@ -448,8 +450,9 @@
         <button type="button" class="tooltip-btn">
           ?
           <span>
-            <strong>Image Adjust</strong> helps you tune how strong the features appear before we “snap”
-            the image to black and white. Use Contrast to make shadows stronger, and Blur to soften noisy details.
+            <strong>Image Adjust</strong> tunes the photo before we snap it to black/white.
+            For side silhouettes, you mostly need the outline of the head and shoulders to stand out
+            against the light wall.
           </span>
         </button>
       </div>
@@ -462,18 +465,18 @@
         <div class="slider">
           <input id="contrastSlider" type="range" min="-40" max="80" value="0" />
         </div>
-        <div class="hint">Increase until face details feel strong but not blown out.</div>
+        <div class="hint">Increase until the profile edge is strong against the light wall.</div>
       </div>
 
       <div class="field-group">
         <label for="blurSlider">
           <span>Shadow Focus (Blur)</span>
-          <span class="value-pill" id="blurValue">2.0px</span>
+          <span class="value-pill" id="blurValue">3.0px</span>
         </label>
         <div class="slider">
-          <input id="blurSlider" type="range" min="0" max="10" step="0.5" value="2" />
+          <input id="blurSlider" type="range" min="0" max="10" step="0.5" value="3" />
         </div>
-        <div class="hint">Add blur to smooth out busy backgrounds and tiny details.</div>
+        <div class="hint">Default blur helps smooth hair and tiny bumps into a cleaner silhouette.</div>
       </div>
 
       <div class="button-row">
@@ -491,8 +494,8 @@
         <button type="button" class="tooltip-btn">
           ?
           <span>
-            <strong>Threshold</strong> decides what becomes pure black vs pure white.
-            Move it slowly until eyes, nose, and mouth are clear but not overly chunky.
+            <strong>Threshold</strong> decides how much of the student becomes solid black.
+            For side silhouettes, aim for a clear filled profile without losing the overall shape.
           </span>
         </button>
       </div>
@@ -500,23 +503,26 @@
       <div class="field-group">
         <label for="thresholdSlider">
           <span>Threshold</span>
-          <span class="value-pill" id="thresholdValue">140</span>
+          <span class="value-pill" id="thresholdValue">170</span>
         </label>
         <div class="slider">
-          <input id="thresholdSlider" type="range" min="40" max="220" value="140" />
+          <input id="thresholdSlider" type="range" min="80" max="230" value="170" />
         </div>
-        <div class="hint">Slide until features are clear lines without losing the face shape.</div>
+        <div class="hint">
+          Slide slowly. Higher values = more filled silhouette. Lower values = thinner shapes and more detail.
+        </div>
       </div>
 
       <div class="toggle-row">
         <label for="subjectLighter">
-          Subject is Lighter than Wall
+          Subject is Lighter than Background (rare)
         </label>
         <input id="subjectLighter" type="checkbox" />
       </div>
       <div class="hint">
-        If your student is in front of a dark wall or shadow, turn this <strong>off</strong>. If the wall is bright and the
-        student is darker, leave it <strong>off</strong> and adjust contrast instead.
+        Most classroom photos have a <strong>light wall and darker student</strong>.
+        Leave this <strong>off</strong>. Turn it on only if your student is glowing brighter than the background
+        (strong backlight or window).
       </div>
 
       <div class="button-row">
@@ -536,6 +542,7 @@
           <span>
             Use <strong>Flip Horizontal</strong> if your projector is behind the tracing paper
             (rear projection). Hotspot brightens the center slightly to fight dim edges.
+            Round crop creates a circle “cameo” silhouette in the middle.
           </span>
         </button>
       </div>
@@ -552,6 +559,16 @@
           Projector Hotspot
         </label>
         <input id="hotspot" type="checkbox" />
+      </div>
+
+      <div class="toggle-row">
+        <label for="roundCrop">
+          Round Crop (Circle Cameo)
+        </label>
+        <input id="roundCrop" type="checkbox" />
+      </div>
+      <div class="hint">
+        Turn on <strong>Round Crop</strong> if you want a circular portrait instead of a full rectangle.
       </div>
 
       <div class="button-row" style="margin-top:0.75rem;">
@@ -578,8 +595,8 @@
         </button>
       </div>
       <div class="tip">
-        <strong>Teacher tip:</strong> Set your projector to “blackout” or a blank slide, then open this PNG and tap F11 / full screen
-        so the tracing fills the wall or paper.
+        <strong>Teacher tip:</strong> Set your projector to a blank screen, then open this PNG and tap F11 / full screen
+        so the silhouette fills the wall or paper.
       </div>
     </div>
   </section>
@@ -599,7 +616,7 @@
       <div class="preview-canvas-shell">
         <canvas id="previewCanvas"></canvas>
         <div id="previewPlaceholder" class="preview-placeholder">
-          Upload a student photo on the left to see the trace preview here.
+          Upload a student side profile on the left to see the trace preview here.
           This is exactly what will appear on the projector and in your PNG/SVG export.
         </div>
       </div>
@@ -629,6 +646,7 @@
     const subjectLighterCheckbox = document.getElementById('subjectLighter');
     const flipHorizontalCheckbox = document.getElementById('flipHorizontal');
     const hotspotCheckbox = document.getElementById('hotspot');
+    const roundCropCheckbox = document.getElementById('roundCrop');
 
     const resetImageAdjustBtn = document.getElementById('resetImageAdjust');
     const resetSensitivityBtn = document.getElementById('resetSensitivity');
@@ -653,11 +671,12 @@
 
     const state = {
       contrast: 0,
-      blur: 2,
-      threshold: 140,
-      subjectLighter: false,
+      blur: 3,
+      threshold: 170,
+      subjectLighter: false, // default: student darker than light background
       flipHorizontal: false,
       hotspot: false,
+      roundCrop: false,
       traceMode: 'shadow'
     };
 
@@ -676,16 +695,16 @@
 
     function setDefaultsImageAdjust() {
       state.contrast = 0;
-      state.blur = 2;
+      state.blur = 3;
       contrastSlider.value = '0';
-      blurSlider.value = '2';
+      blurSlider.value = '3';
       updateLabels();
     }
 
     function setDefaultsSensitivity() {
-      state.threshold = 140;
+      state.threshold = 170;
       state.subjectLighter = false;
-      thresholdSlider.value = '140';
+      thresholdSlider.value = '170';
       subjectLighterCheckbox.checked = false;
       updateLabels();
     }
@@ -693,8 +712,10 @@
     function setDefaultsProjector() {
       state.flipHorizontal = false;
       state.hotspot = false;
+      state.roundCrop = false;
       flipHorizontalCheckbox.checked = false;
       hotspotCheckbox.checked = false;
+      roundCropCheckbox.checked = false;
     }
 
     function resetAll() {
@@ -726,7 +747,7 @@
       previewMeta.style.display = 'flex';
     }
 
-    // NEW: smooth binary mask to "round off" hair weirdness
+    // Smooth binary mask to "round off" hair weirdness
     function smoothBinaryMask(imgData, w, h) {
       const data = imgData.data;
       const src = new Uint8ClampedArray(w * h);
@@ -769,6 +790,30 @@
         const idx = i * 4;
         data[idx] = data[idx + 1] = data[idx + 2] = v;
         data[idx + 3] = 255;
+      }
+    }
+
+    // Apply round crop (white outside circle)
+    function applyRoundCrop(imgData, w, h) {
+      const data = imgData.data;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) * 0.47;
+      const r2 = radius * radius;
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const dx = x - cx;
+          const dy = y - cy;
+          const dist2 = dx * dx + dy * dy;
+          if (dist2 > r2) {
+            const idx = (y * w + x) * 4;
+            data[idx] = 255;
+            data[idx + 1] = 255;
+            data[idx + 2] = 255;
+            data[idx + 3] = 255;
+          }
+        }
       }
     }
 
@@ -871,8 +916,7 @@
         }
       }
 
-      ctxPreview.putImageData(imgData, 0, 0);
-
+      // Projector hotspot
       if (state.hotspot) {
         const radiusInner = Math.min(w, h) * 0.15;
         const radiusOuter = Math.min(w, h) * 0.65;
@@ -886,7 +930,18 @@
         ctxPreview.fillStyle = grad;
         ctxPreview.fillRect(0, 0, w, h);
         ctxPreview.globalCompositeOperation = 'source-over';
+
+        // Re-read image data after hotspot
+        imgData = ctxPreview.getImageData(0, 0, w, h);
+        data = imgData.data;
       }
+
+      // Round crop (white outside circle)
+      if (state.roundCrop) {
+        applyRoundCrop(imgData, w, h);
+      }
+
+      ctxPreview.putImageData(imgData, 0, 0);
 
       updateLabels();
       enableExportButtons(true);
@@ -980,6 +1035,11 @@
 
     hotspotCheckbox.addEventListener('change', () => {
       state.hotspot = hotspotCheckbox.checked;
+      processImage();
+    });
+
+    roundCropCheckbox.addEventListener('change', () => {
+      state.roundCrop = roundCropCheckbox.checked;
       processImage();
     });
 
