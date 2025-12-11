@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy Trace Tool</title>
+    <title>EasyTrace Pro</title>
     <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
     
     <style>
@@ -15,7 +15,6 @@
             --text-main: #1f2937;     /* Soft Black */
             --text-sub: #6b7280;      /* Grey Text */
             --border: #e5e7eb;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --radius: 16px;
         }
 
@@ -29,7 +28,7 @@
             overflow: hidden;
         }
 
-        /* --- SIDEBAR (Controls) --- */
+        /* --- SIDEBAR --- */
         .sidebar {
             width: 360px;
             background: var(--bg-card);
@@ -60,9 +59,7 @@
         }
 
         /* Steps */
-        .step-group {
-            margin-bottom: 32px;
-        }
+        .step-group { margin-bottom: 32px; }
         .step-header {
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -86,7 +83,7 @@
             font-size: 10px;
         }
 
-        /* Inputs */
+        /* Inputs & Badges */
         .control-item { margin-bottom: 16px; }
         .label-row {
             display: flex;
@@ -129,6 +126,18 @@
         }
         input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.1); }
 
+        /* Dropdown Select */
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+            color: var(--text-main);
+            background: #f9fafb;
+            cursor: pointer;
+        }
+
         /* Big Upload Button */
         .upload-btn {
             background: #eff6ff;
@@ -145,10 +154,7 @@
             align-items: center;
             gap: 8px;
         }
-        .upload-btn:hover {
-            background: #dbeafe;
-            border-color: var(--primary);
-        }
+        .upload-btn:hover { background: #dbeafe; border-color: var(--primary); }
 
         /* Toggles */
         .toggle-card {
@@ -164,9 +170,7 @@
         }
         .toggle-card:hover { background: #f3f4f6; }
         .toggle-card span { font-size: 0.9rem; font-weight: 500; }
-        input[type="checkbox"] {
-            width: 20px; height: 20px; accent-color: var(--primary);
-        }
+        input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
 
         /* Mode Tabs */
         .mode-tabs {
@@ -273,7 +277,7 @@
 
     <div class="sidebar">
         <div class="logo-area">
-            <h1>🎨 EasyTrace</h1>
+            <h1>🎨 EasyTrace Pro</h1>
         </div>
 
         <div class="controls-container">
@@ -292,6 +296,17 @@
                     <div class="mode-tab active" id="tabShadow" onclick="setMode('shadow')">Filled Shadow</div>
                     <div class="mode-tab" id="tabOutline" onclick="setMode('outline')">Outline Only</div>
                 </div>
+
+                <div class="control-item">
+                    <div class="label-row">
+                        <span>Frame Shape</span>
+                    </div>
+                    <select id="cropShape">
+                        <option value="none">No Frame (Full)</option>
+                        <option value="circle">Circle Cameo</option>
+                        <option value="square">Square Cameo</option>
+                    </select>
+                </div>
             </div>
 
             <div class="step-group">
@@ -300,10 +315,10 @@
                 <div class="control-item">
                     <div class="label-row">
                         <span>Shadow Detail</span>
-                        <span class="val-badge" id="threshVal">Medium</span>
+                        <span class="val-badge" id="threshVal">128</span>
                     </div>
                     <input type="range" id="threshold" min="0" max="255" value="128">
-                    <div style="font-size: 0.75rem; color: #9ca3af; margin-top:4px;">Slide right for darker, left for lighter</div>
+                    <div style="font-size: 0.75rem; color: #9ca3af; margin-top:4px;">Slide right for solid black, left for detail.</div>
                 </div>
 
                 <div class="control-item">
@@ -311,7 +326,15 @@
                         <span>Smoothness</span>
                         <span class="val-badge" id="blurVal">Soft</span>
                     </div>
-                    <input type="range" id="blur" min="0" max="10" value="2.0" step="0.5">
+                    <input type="range" id="blur" min="0" max="10" value="3" step="0.5">
+                </div>
+                
+                <div class="control-item">
+                    <div class="label-row">
+                        <span>Contrast</span>
+                        <span class="val-badge" id="contrastVal">0%</span>
+                    </div>
+                    <input type="range" id="contrast" min="0" max="100" value="0">
                 </div>
 
                  <div class="control-item">
@@ -335,9 +358,6 @@
                     <span>Add "Hotspot" Glow</span>
                     <input type="checkbox" id="hotspot">
                 </label>
-                
-                <input type="range" id="contrast" min="0" max="200" value="0" style="display:none;">
-                <input type="checkbox" id="invert" style="display:none;">
             </div>
 
         </div>
@@ -376,8 +396,8 @@
         const cropIn = document.getElementById('crop');
         const flipIn = document.getElementById('flip');
         const hotspotIn = document.getElementById('hotspot');
-        const contrastIn = document.getElementById('contrast'); // Hidden but used
-        const invertIn = document.getElementById('invert');     // Hidden but used
+        const contrastIn = document.getElementById('contrast');
+        const cropShapeIn = document.getElementById('cropShape');
 
         // Buttons
         const tabShadow = document.getElementById('tabShadow');
@@ -392,25 +412,20 @@
 
         // --- UI HELPERS ---
         function updateUI() {
-            // Threshold Text
-            const t = parseInt(threshIn.value);
-            let tText = "Medium";
-            if(t < 80) tText = "Very Low";
-            else if(t < 110) tText = "Low";
-            else if(t > 150) tText = "High";
-            else if(t > 200) tText = "Solid Black";
-            document.getElementById('threshVal').innerText = tText;
+            // Threshold
+            document.getElementById('threshVal').innerText = threshIn.value;
 
             // Blur Text
             const b = parseFloat(blurIn.value);
-            let bText = "Medium";
+            let bText = b + "px";
             if(b === 0) bText = "Sharp";
             else if(b < 2) bText = "Crisp";
-            else if(b > 4) bText = "Very Soft";
+            else if(b > 4) bText = "Soft";
             document.getElementById('blurVal').innerText = bText;
 
-            // Crop Text
+            // Crop/Contrast
             document.getElementById('cropVal').innerText = cropIn.value + '%';
+            document.getElementById('contrastVal').innerText = contrastIn.value + '%';
         }
 
         function setMode(mode) {
@@ -425,101 +440,214 @@
             processImage();
         }
 
-        // --- PROCESSING PIPELINE ---
+        // --- ROBUST PROCESSING LOGIC (From V4) ---
+
+        // 1. Smooths the binary mask to remove "pixel noise"
+        function smoothBinaryMask(imgData, w, h) {
+            const data = imgData.data;
+            const src = new Uint8ClampedArray(w * h);
+            // Copy red channel (grayscale)
+            for (let i = 0; i < w * h; i++) src[i] = data[i * 4];
+
+            const dst = new Uint8ClampedArray(w * h);
+            const radius = 1; // 3x3 kernel
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    let sum = 0, count = 0;
+                    for (let ky = -radius; ky <= radius; ky++) {
+                        const ny = y + ky;
+                        if (ny < 0 || ny >= h) continue;
+                        for (let kx = -radius; kx <= radius; kx++) {
+                            const nx = x + kx;
+                            if (nx < 0 || nx >= w) continue;
+                            sum += src[ny * w + nx];
+                            count++;
+                        }
+                    }
+                    const avg = sum / count;
+                    dst[y * w + x] = avg > 127 ? 255 : 0; // Re-threshold
+                }
+            }
+
+            // Write back
+            for (let i = 0; i < w * h; i++) {
+                const v = dst[i];
+                const idx = i * 4;
+                data[idx] = data[idx+1] = data[idx+2] = v;
+                data[idx+3] = 255;
+            }
+        }
+
+        // 2. Applies Circle/Square Frames
+        function applyFrame(imgData, w, h) {
+            const shape = cropShapeIn.value;
+            if (shape === 'none') return;
+
+            const data = imgData.data;
+            const cx = w / 2;
+            const cy = h / 2;
+            const minDim = Math.min(w, h);
+            // Frame is slightly smaller than canvas to look nice
+            const halfSize = (minDim * 0.95) / 2; 
+            const r2 = halfSize * halfSize;
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const dx = x - cx;
+                    const dy = y - cy;
+                    let keep = false;
+
+                    if (shape === 'circle') {
+                        const dist2 = dx*dx + dy*dy;
+                        keep = dist2 <= r2;
+                    } else if (shape === 'square') {
+                        keep = Math.abs(dx) <= halfSize && Math.abs(dy) <= halfSize;
+                    }
+
+                    if (!keep) {
+                        const idx = (y * w + x) * 4;
+                        // Turn outside pixels White (or Transparent if we wanted)
+                        // For projector mode, White is usually better to block light
+                        data[idx] = 255; 
+                        data[idx+1] = 255; 
+                        data[idx+2] = 255; 
+                        data[idx+3] = 255;
+                    }
+                }
+            }
+        }
+
+        // 3. Main Pipeline
         function processImage() {
             if (!isLoaded) return;
 
-            // 1. Calculate Crop/Zoom
+            // A. Zoom Calculation
             const w = currentImg.width;
             const h = currentImg.height;
             const cropPct = parseInt(cropIn.value) / 100;
-            const cropW = w * cropPct;
-            const cropH = h * cropPct;
-            const cropX = (w - cropW) / 2;
-            const cropY = (h - cropH) / 2;
+            const cropW = Math.floor(w * cropPct);
+            const cropH = Math.floor(h * cropPct);
+            const cropX = Math.floor((w - cropW) / 2);
+            const cropY = Math.floor((h - cropH) / 2);
 
             canvas.width = cropW;
             canvas.height = cropH;
 
-            // 2. Temp Canvas for Filters
-            const tempCvs = document.createElement('canvas');
-            tempCvs.width = cropW;
-            tempCvs.height = cropH;
-            const tCtx = tempCvs.getContext('2d');
-
-            tCtx.save();
+            // B. Draw to Context (Apply Flip, Blur, Contrast)
+            ctx.clearRect(0,0,cropW, cropH);
+            ctx.save();
+            
             if (flipIn.checked) {
-                tCtx.translate(cropW, 0);
-                tCtx.scale(-1, 1);
+                ctx.translate(cropW, 0);
+                ctx.scale(-1, 1);
             }
             
             const contrast = 100 + parseInt(contrastIn.value);
             const blur = parseFloat(blurIn.value);
-            tCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
+            // We use CSS filter string on context for high perf
+            ctx.filter = `contrast(${contrast}%) blur(${blur}px)`;
             
-            tCtx.drawImage(currentImg, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-            tCtx.restore();
+            ctx.drawImage(currentImg, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+            ctx.restore();
+            ctx.filter = 'none'; // Reset
 
-            // 3. Thresholding (Make it Black & White)
-            const frame = tCtx.getImageData(0, 0, cropW, cropH);
-            const data = frame.data;
+            // C. Pixel Manipulation (Thresholding)
+            let imgData = ctx.getImageData(0, 0, cropW, cropH);
+            let data = imgData.data;
             const thresh = parseInt(threshIn.value);
-            const isInverted = invertIn.checked;
 
-            for (let i = 0; i < data.length; i += 4) {
-                const b = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
-                let isSubject = isInverted ? (b > thresh) : (b < thresh);
+            if (traceMode === 'shadow') {
+                // --- SHADOW MODE ---
+                for (let i = 0; i < data.length; i += 4) {
+                    const r=data[i], g=data[i+1], b=data[i+2];
+                    const v = 0.299*r + 0.587*g + 0.114*b;
+                    // Standard: Dark Subject < Thresh
+                    const out = v < thresh ? 0 : 255;
+                    data[i] = data[i+1] = data[i+2] = out;
+                    data[i+3] = 255; // Alpha
+                }
+                
+                smoothBinaryMask(imgData, cropW, cropH);
 
-                if (isSubject) {
-                    data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255;
-                } else {
-                    data[i+3] = 0;
+            } else {
+                // --- OUTLINE MODE (Sobel Edge Detection) ---
+                // First Grayscale
+                const gray = new Uint8ClampedArray(cropW * cropH);
+                for (let y=0; y<cropH; y++) {
+                    for (let x=0; x<cropW; x++) {
+                        const idx = (y*cropW + x)*4;
+                        const v = 0.299*data[idx] + 0.587*data[idx+1] + 0.114*data[idx+2];
+                        gray[y*cropW + x] = v;
+                    }
+                }
+
+                const sobelOut = new Uint8ClampedArray(cropW * cropH);
+                // Sobel Kernels
+                const gxk = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+                const gyk = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+
+                for (let y=1; y<cropH-1; y++) {
+                    for (let x=1; x<cropW-1; x++) {
+                        let gx=0, gy=0, k=0;
+                        for(let ky=-1; ky<=1; ky++){
+                            for(let kx=-1; kx<=1; kx++){
+                                const px = gray[(y+ky)*cropW + (x+kx)];
+                                gx += gxk[k]*px;
+                                gy += gyk[k]*px;
+                                k++;
+                            }
+                        }
+                        const mag = Math.sqrt(gx*gx + gy*gy);
+                        sobelOut[y*cropW + x] = mag;
+                    }
+                }
+                
+                // Threshold the edges
+                for (let i=0; i<cropW*cropH; i++) {
+                    const idx = i*4;
+                    // Invert: High magnitude = Edge = Black
+                    const val = sobelOut[i] > (255 - thresh) ? 0 : 255; 
+                    data[idx] = data[idx+1] = data[idx+2] = val;
+                    data[idx+3] = 255;
                 }
             }
-            tCtx.putImageData(frame, 0, 0);
 
-            // 4. Final Render
-            ctx.clearRect(0, 0, cropW, cropH);
-
-            // Background
+            // D. Apply Hotspot (Projector Glow)
             if (hotspotIn.checked) {
-                const g = ctx.createRadialGradient(cropW/2, cropH/2, cropW/5, cropW/2, cropH/2, cropW);
-                g.addColorStop(0, "#ffffff"); g.addColorStop(1, "#e5e7eb");
-                ctx.fillStyle = g;
-            } else {
-                ctx.fillStyle = "#ffffff";
-            }
-            ctx.fillRect(0, 0, cropW, cropH);
-
-            // Draw based on Mode
-            if (traceMode === 'outline') {
-                drawOutline(tCtx, cropW, cropH);
-            } else {
-                ctx.drawImage(tempCvs, 0, 0);
-            }
-        }
-
-        // Helper: Simple Edge Detection for Outline
-        function drawOutline(maskCtx, w, h) {
-            const data = maskCtx.getImageData(0, 0, w, h).data;
-            const outlineData = ctx.createImageData(w, h);
-            const out = outlineData.data;
-
-            for (let y = 1; y < h-1; y++) {
-                for (let x = 1; x < w-1; x++) {
-                    const i = (y * w + x) * 4;
-                    if (data[i+3] === 0) { // If transparent
-                        const top = ((y-1)*w+x)*4; const bot = ((y+1)*w+x)*4;
-                        const left = (y*w+(x-1))*4; const right = (y*w+(x+1))*4;
-                        // If any neighbor is black
-                        if (data[top+3]>0 || data[bot+3]>0 || data[left+3]>0 || data[right+3]>0) {
-                            out[i]=80; out[i+1]=80; out[i+2]=80; out[i+3]=255; // Grey line
-                        }
+                // We apply this using composite operations AFTER getting image data?
+                // Actually easier to draw gradient on top with 'multiply' or 'screen'
+                // But we are manipulating pixels directly. 
+                // Let's modify pixels directly for simplicity.
+                const cx = cropW/2, cy = cropH/2;
+                const maxDist = Math.sqrt(cx*cx + cy*cy);
+                
+                for(let y=0; y<cropH; y++){
+                    for(let x=0; x<cropW; x++){
+                        const idx = (y*cropW + x)*4;
+                        // Skip if pixel is black (part of shadow)
+                        if(data[idx] < 50) continue; 
+                        
+                        // Vignette math
+                        const dx = x - cx; 
+                        const dy = y - cy;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        const factor = 1 - (dist / maxDist)*0.5; // darken edges by 50%
+                        
+                        data[idx] *= factor;
+                        data[idx+1] *= factor;
+                        data[idx+2] *= factor;
                     }
                 }
             }
-            ctx.putImageData(outlineData, 0, 0);
+
+            // E. Apply Frame Crop
+            applyFrame(imgData, cropW, cropH);
+
+            // F. Put Data Back
+            ctx.putImageData(imgData, 0, 0);
         }
+
 
         // --- EVENTS ---
         fileInput.addEventListener('change', (e) => {
@@ -542,33 +670,46 @@
             reader.readAsDataURL(file);
         });
 
-        const controls = [threshIn, blurIn, cropIn, flipIn, hotspotIn];
+        const controls = [threshIn, blurIn, cropIn, flipIn, hotspotIn, contrastIn, cropShapeIn];
         controls.forEach(el => el.addEventListener('input', () => {
             updateUI();
             processImage();
         }));
 
-        // Export
+        // Export PNG
         dlPng.addEventListener('click', () => {
             const link = document.createElement('a');
-            link.download = 'my-trace.png';
+            link.download = 'easy-trace.png';
             link.href = canvas.toDataURL();
             link.click();
         });
 
+        // Export SVG (True Vector using ImageTracer)
         dlSvg.addEventListener('click', () => {
             const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
-            const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2 };
+            // Config optimized for silhouettes
+            const options = { 
+                ltres: 1, 
+                qtres: 1, 
+                pathomit: 8, 
+                colorsampling: 0, 
+                numberofcolors: 2, 
+                mincolorratio: 0, 
+                colorquantcycles: 0 
+            };
+            
             let svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
             
+            // If Outline mode, we want strokes, not fills
             if (traceMode === 'outline') {
-                 svgStr = svgStr.replace(/fill="rgb\(0,0,0\)"/g, 'fill="none" stroke="rgb(80,80,80)" stroke-width="2"');
+                 // Replace black fill with stroke
+                 svgStr = svgStr.replace(/fill="rgb\(0,0,0\)"/g, 'fill="none" stroke="rgb(0,0,0)" stroke-width="2"');
             }
 
             const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.download = 'my-trace.svg';
+            link.download = 'easy-trace-vector.svg';
             link.href = url;
             link.click();
         });
