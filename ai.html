@@ -1,292 +1,966 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Vector Silhouette</title>
-    <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js"></script>
-    
-    <style>
-        :root { --primary: #2563eb; --accent: #8b5cf6; --bg: #f8fafc; --card: #ffffff; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: #333; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        
-        h1 { margin-bottom: 5px; }
-        p { color: #64748b; margin-bottom: 25px; text-align: center; max-width: 600px; line-height: 1.5; }
-        
-        .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; width: 100%; max-width: 1100px; align-items: flex-start; }
-        
-        .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
-        
-        /* Canvas Container */
-        .preview-area { flex: 2; min-width: 300px; align-items: center; position: relative; }
-        canvas { max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px; background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%); background-size: 20px 20px; }
-        
-        /* Controls */
-        .controls-area { flex: 1; min-width: 280px; max-width: 350px; }
-        
-        .control-group { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
-        .control-group:last-child { border-bottom: none; }
-        
-        label { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
-        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
-        
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        .btn-upload { background: #e2e8f0; color: #334155; margin-bottom: 10px; }
-        .btn-upload:hover { background: #cbd5e1; }
-        
-        .btn-ai { background: linear-gradient(135deg, #8b5cf6, #d946ef); color: white; margin-bottom: 20px; border: 1px solid transparent; }
-        .btn-ai:hover { opacity: 0.9; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
-        .btn-ai:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Projector Trace Tool</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #171e34;
+      --panel-soft: #202846;
+      --accent: #5fb1ff;
+      --accent-soft: rgba(95, 177, 255, 0.12);
+      --text: #f5f7ff;
+      --muted: #a9b2d9;
+      --border: #2a345d;
+      --danger: #f97373;
+    }
 
-        /* Download Buttons Grid */
-        .download-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        
-        .btn-dl { color: white; opacity: 0.5; pointer-events: none; font-size: 0.9rem; }
-        .btn-dl:not([disabled]) { opacity: 1; pointer-events: auto; }
-        
-        .btn-png { background: var(--primary); }
-        .btn-png:hover { background: #1d4ed8; }
-        
-        .btn-svg { background: #059669; }
-        .btn-svg:hover { background: #047857; }
+    * {
+      box-sizing: border-box;
+    }
 
-        #fileInput { display: none; }
-        
-        /* Loading Overlay */
-        .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; border-radius: 8px; display: none; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .error-msg { color: #dc2626; font-size: 0.9rem; margin-top: 10px; text-align: center; max-width: 80%; display: none; background: #fee2e2; padding: 10px; border-radius: 8px; }
-    </style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1a2450 0, #050713 60%);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 0.9rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, rgba(10,14,34,0.96), rgba(12,24,60,0.96));
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .sidebar {
+      width: 310px;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .panel {
+      background: linear-gradient(145deg, var(--panel), #141a30);
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      padding: 0.75rem 0.9rem;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.7rem;
+      border: 1px solid rgba(95, 177, 255, 0.6);
+      background: rgba(95, 177, 255, 0.08);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+    }
+
+    .value-pill {
+      font-size: 0.75rem;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+      min-width: 3.2rem;
+      text-align: right;
+      color: var(--text);
+    }
+
+    input[type="file"] {
+      width: 100%;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+
+    .trace-mode-select {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.35rem 0.45rem;
+      border-radius: 0.4rem;
+      border: 1px solid var(--border);
+      background: rgba(7, 12, 30, 0.9);
+      color: var(--text);
+      font-size: 0.8rem;
+    }
+
+    .slider {
+      width: 100%;
+    }
+
+    .slider input[type="range"] {
+      width: 100%;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-top: 0.15rem;
+    }
+
+    .toggle-row label {
+      margin: 0;
+    }
+
+    .toggle-row input {
+      transform: scale(1.1);
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #8ed1ff);
+      color: #020617;
+    }
+
+    button.outline {
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .tip {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+      border-radius: 0.5rem;
+      background: rgba(12, 22, 54, 0.9);
+      padding: 0.35rem 0.45rem;
+    }
+
+    .tip strong {
+      color: var(--accent);
+    }
+
+    .tooltip-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--muted);
+      width: 18px;
+      height: 18px;
+      font-size: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tooltip-btn span {
+      display: none;
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #020617;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.45rem;
+      border: 1px solid var(--border);
+      font-size: 0.72rem;
+      color: var(--muted);
+      width: 220px;
+      text-align: left;
+      z-index: 20;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .tooltip-btn:hover span {
+      display: block;
+    }
+
+    .tooltip-btn span::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px;
+      border-style: solid;
+      border-color: var(--border) transparent transparent transparent;
+    }
+
+    .preview-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .preview-wrapper {
+      flex: 1;
+      background: radial-gradient(circle at top, #141a30 0, #050713 65%);
+      border-radius: 0.9rem;
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .preview-header span {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .preview-canvas-shell {
+      flex: 1;
+      border-radius: 0.7rem;
+      border: 1px dashed rgba(62, 77, 134, 0.8);
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(13, 20, 50, 0.9),
+        rgba(13, 20, 50, 0.9) 10px,
+        rgba(9, 15, 34, 0.9) 10px,
+        rgba(9, 15, 34, 0.9) 20px
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #previewCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      image-rendering: pixelated;
+      background: #000;
+    }
+
+    .preview-placeholder {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 0 1rem;
+    }
+
+    .preview-meta {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .preview-meta span {
+      white-space: nowrap;
+    }
+
+    .mini-orig {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    #origThumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 0.35rem;
+      border: 1px solid var(--border);
+      object-fit: cover;
+      background: #020617;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        order: 2;
+      }
+      .preview-area {
+        order: 1;
+      }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
 </head>
 <body>
+<header>
+  <div>
+    <h1>Projector Trace Tool</h1>
+    <p>Turn student photos into projector-friendly tracing silhouettes and outlines.</p>
+  </div>
+  <p>Steps: Upload → Adjust → Threshold → Project → Trace</p>
+</header>
 
-    <h1>👤 AI Vector Silhouette</h1>
-    <p>Upload a photo. Generate <strong>PNG</strong> or <strong>Scalable SVG</strong> shadows instantly.</p>
-
-    <div class="container">
-        
-        <div class="card controls-area">
-            <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
-                📂 Upload Photo
-            </button>
-            <input type="file" id="fileInput" accept="image/*">
-
-            <button id="aiBtn" class="btn btn-ai" disabled>
-                ✨ AI Remove Background
-            </button>
-
-            <div class="control-group">
-                <label>Threshold <span style="font-weight:normal; font-size:0.8em; color:#666;">(Manual Mode)</span></label>
-                <input type="range" id="threshold" min="0" max="255" value="128">
-            </div>
-
-            <div class="control-group">
-                <label>Cameo Tools</label>
-                <label style="font-weight: normal;"><input type="checkbox" id="flip"> Flip Direction</label>
-                <label style="font-weight: normal;"><input type="checkbox" id="oval"> Oval Frame</label>
-                <label style="font-weight: normal;"><input type="checkbox" id="invert"> Invert (White Shadow)</label>
-            </div>
-
-            <div class="download-group">
-                <button id="dlPng" class="btn btn-dl btn-png" disabled>⬇ PNG</button>
-                <button id="dlSvg" class="btn btn-dl btn-svg" disabled>⬇ SVG</button>
-            </div>
+<main>
+  <section class="sidebar" aria-label="Controls">
+    <!-- STEP 1: Upload -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="step-label">Step 1</div>
+          <div class="panel-title">Upload Student Photo</div>
         </div>
+        <span class="chip">Start Here</span>
+      </div>
+      <div class="field-group">
+        <label for="fileInput">
+          Choose Image
+        </label>
+        <input id="fileInput" type="file" accept="image/*" />
+        <div class="hint">Bright side-lighting works best. Head and shoulders only if possible.</div>
+      </div>
 
-        <div class="card preview-area">
-            <div id="loader" class="loading-overlay">
-                <div class="spinner"></div>
-                <div id="loadingText" style="text-align:center;">Initializing AI...<br><span style="font-size:0.8em; color:#666;">(First run takes ~15s)</span></div>
-                <div id="errorText" class="error-msg"></div>
-            </div>
-            <canvas id="canvas"></canvas>
+      <div class="field-group">
+        <label for="traceMode">
+          Tracing Mode
+        </label>
+        <select id="traceMode" class="trace-mode-select">
+          <option value="shadow">Cast Shadow Pencil Trace (fill + outline)</option>
+          <option value="outline">Bold Outline Only (edge trace)</option>
+        </select>
+        <div class="hint">
+          Try <strong>Cast Shadow</strong> first. If it’s too solid, switch to <strong>Bold Outline</strong>.
         </div>
+      </div>
     </div>
 
-    <script type="module">
-        // 1. IMPORT: Using stable version 1.5.5
-        import { removeBackground } from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm";
+    <!-- STEP 2: Image Adjust -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="step-label">Step 2</div>
+          <div class="panel-title">Image Adjust</div>
+        </div>
+        <button type="button" class="tooltip-btn">
+          ?
+          <span>
+            <strong>Image Adjust</strong> helps you tune how strong the features appear before we “snap”
+            the image to black and white. Use Contrast to make shadows stronger, and Blur to soften noisy details.
+          </span>
+        </button>
+      </div>
 
-        const fileInput = document.getElementById('fileInput');
-        const aiBtn = document.getElementById('aiBtn');
-        const thresholdSlider = document.getElementById('threshold');
-        const flipCheck = document.getElementById('flip');
-        const ovalCheck = document.getElementById('oval');
-        const invertCheck = document.getElementById('invert');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        const dlPng = document.getElementById('dlPng');
-        const dlSvg = document.getElementById('dlSvg');
-        const loader = document.getElementById('loader');
-        const loadingText = document.getElementById('loadingText');
-        const errorText = document.getElementById('errorText');
+      <div class="field-group">
+        <label for="contrastSlider">
+          <span>Contrast</span>
+          <span class="value-pill" id="contrastValue">+0%</span>
+        </label>
+        <div class="slider">
+          <input id="contrastSlider" type="range" min="-40" max="80" value="0" />
+        </div>
+        <div class="hint">Increase until face details feel strong but not blown out.</div>
+      </div>
 
-        let currentImg = new Image();
-        let originalUploadedImg = null;
-        let isLoaded = false;
-        let isAiProcessed = false;
+      <div class="field-group">
+        <label for="blurSlider">
+          <span>Shadow Focus (Blur)</span>
+          <span class="value-pill" id="blurValue">2.0px</span>
+        </label>
+        <div class="slider">
+          <input id="blurSlider" type="range" min="0" max="10" step="0.5" value="2" />
+        </div>
+        <div class="hint">Add blur to smooth out busy backgrounds and tiny details.</div>
+      </div>
 
-        // --- 2. THE FIX ---
-        // We explicitly point publicPath to the DATA package on CDN.
-        // This ensures it finds 'isnet_quint8.wasm' correctly.
-        const aiConfig = {
-            publicPath: "https://cdn.jsdelivr.net/npm/@imgly/background-removal-data@1.5.5/dist/"
+      <div class="button-row">
+        <button id="resetImageAdjust" type="button" class="outline">Reset Image Adjust</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Sensitivity -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="step-label">Step 3</div>
+          <div class="panel-title">Sensitivity</div>
+        </div>
+        <button type="button" class="tooltip-btn">
+          ?
+          <span>
+            <strong>Threshold</strong> decides what becomes pure black vs pure white.
+            Move it slowly until eyes, nose, and mouth are clear but not overly chunky.
+          </span>
+        </button>
+      </div>
+
+      <div class="field-group">
+        <label for="thresholdSlider">
+          <span>Threshold</span>
+          <span class="value-pill" id="thresholdValue">140</span>
+        </label>
+        <div class="slider">
+          <input id="thresholdSlider" type="range" min="40" max="220" value="140" />
+        </div>
+        <div class="hint">Slide until features are clear lines without losing the face shape.</div>
+      </div>
+
+      <div class="toggle-row">
+        <label for="subjectLighter">
+          Subject is Lighter than Wall
+        </label>
+        <input id="subjectLighter" type="checkbox" />
+      </div>
+      <div class="hint">
+        If your student is in front of a dark wall or shadow, turn this <strong>off</strong>. If the wall is bright and the
+        student is darker, leave it <strong>off</strong> and adjust contrast instead.
+      </div>
+
+      <div class="button-row">
+        <button id="resetSensitivity" type="button" class="outline">Reset Sensitivity</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Projector Setup & Export -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="step-label">Step 4</div>
+          <div class="panel-title">Projector Setup</div>
+        </div>
+        <button type="button" class="tooltip-btn">
+          ?
+          <span>
+            Use <strong>Flip Horizontal</strong> if your projector is behind the tracing paper
+            (rear projection). Hotspot brightens the center slightly to fight dim edges.
+          </span>
+        </button>
+      </div>
+
+      <div class="toggle-row">
+        <label for="flipHorizontal">
+          Flip Horizontal (Rear View)
+        </label>
+        <input id="flipHorizontal" type="checkbox" />
+      </div>
+
+      <div class="toggle-row">
+        <label for="hotspot">
+          Projector Hotspot
+        </label>
+        <input id="hotspot" type="checkbox" />
+      </div>
+
+      <div class="button-row" style="margin-top:0.75rem;">
+        <button id="resetAll" type="button" class="outline">Reset All Settings</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Export -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="step-label">Step 5</div>
+          <div class="panel-title">Export for Tracing</div>
+        </div>
+        <span class="chip">Final Step</span>
+      </div>
+
+      <div class="button-row">
+        <button id="downloadPng" type="button" class="primary" disabled>
+          ⬇ PNG
+        </button>
+        <button id="downloadSvg" type="button" class="outline" disabled>
+          ⬇ SVG
+        </button>
+      </div>
+      <div class="tip">
+        <strong>Teacher tip:</strong> Set your projector to “blackout” or a blank slide, then open this PNG and tap F11 / full screen
+        so the tracing fills the wall or paper.
+      </div>
+    </div>
+  </section>
+
+  <section class="preview-area" aria-label="Preview">
+    <div class="preview-wrapper">
+      <div class="preview-header">
+        <div>
+          <span>Live Trace Preview</span>
+        </div>
+        <div class="mini-orig">
+          <img id="origThumb" alt="Original preview" />
+          <span>Original</span>
+        </div>
+      </div>
+
+      <div class="preview-canvas-shell">
+        <canvas id="previewCanvas"></canvas>
+        <div id="previewPlaceholder" class="preview-placeholder">
+          Upload a student photo on the left to see the trace preview here.
+          This is exactly what will appear on the projector and in your PNG/SVG export.
+        </div>
+      </div>
+
+      <div class="preview-meta" id="previewMeta" style="display:none;">
+        <span id="metaSize"></span>
+        <span id="metaMode"></span>
+        <span id="metaNote">For best tracing: turn off classroom lights and maximize projection size.</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  (function() {
+    const fileInput = document.getElementById('fileInput');
+    const traceModeSelect = document.getElementById('traceMode');
+
+    const contrastSlider = document.getElementById('contrastSlider');
+    const blurSlider = document.getElementById('blurSlider');
+    const thresholdSlider = document.getElementById('thresholdSlider');
+
+    const contrastValue = document.getElementById('contrastValue');
+    const blurValue = document.getElementById('blurValue');
+    const thresholdValue = document.getElementById('thresholdValue');
+
+    const subjectLighterCheckbox = document.getElementById('subjectLighter');
+    const flipHorizontalCheckbox = document.getElementById('flipHorizontal');
+    const hotspotCheckbox = document.getElementById('hotspot');
+
+    const resetImageAdjustBtn = document.getElementById('resetImageAdjust');
+    const resetSensitivityBtn = document.getElementById('resetSensitivity');
+    const resetAllBtn = document.getElementById('resetAll');
+
+    const downloadPngBtn = document.getElementById('downloadPng');
+    const downloadSvgBtn = document.getElementById('downloadSvg');
+
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewPlaceholder = document.getElementById('previewPlaceholder');
+    const previewMeta = document.getElementById('previewMeta');
+    const metaSize = document.getElementById('metaSize');
+    const metaMode = document.getElementById('metaMode');
+    const origThumb = document.getElementById('origThumb');
+
+    const ctxPreview = previewCanvas.getContext('2d');
+
+    let img = new Image();
+    let imgLoaded = false;
+    let canvasW = 0;
+    let canvasH = 0;
+
+    const state = {
+      contrast: 0,
+      blur: 2,
+      threshold: 140,
+      subjectLighter: false,
+      flipHorizontal: false,
+      hotspot: false,
+      traceMode: 'shadow'
+    };
+
+    function updateLabels() {
+      const c = state.contrast;
+      const sign = c > 0 ? '+' : '';
+      contrastValue.textContent = sign + c + '%';
+      blurValue.textContent = state.blur.toFixed(1) + 'px';
+      thresholdValue.textContent = state.threshold;
+      metaMode.textContent =
+        'Mode: ' +
+        (state.traceMode === 'shadow'
+          ? 'Cast Shadow Pencil Trace'
+          : 'Bold Outline Only (edge trace)');
+    }
+
+    function setDefaultsImageAdjust() {
+      state.contrast = 0;
+      state.blur = 2;
+      contrastSlider.value = '0';
+      blurSlider.value = '2';
+      updateLabels();
+    }
+
+    function setDefaultsSensitivity() {
+      state.threshold = 140;
+      state.subjectLighter = false;
+      thresholdSlider.value = '140';
+      subjectLighterCheckbox.checked = false;
+      updateLabels();
+    }
+
+    function setDefaultsProjector() {
+      state.flipHorizontal = false;
+      state.hotspot = false;
+      flipHorizontalCheckbox.checked = false;
+      hotspotCheckbox.checked = false;
+    }
+
+    function resetAll() {
+      setDefaultsImageAdjust();
+      setDefaultsSensitivity();
+      setDefaultsProjector();
+      traceModeSelect.value = 'shadow';
+      state.traceMode = 'shadow';
+      updateLabels();
+      if (imgLoaded) {
+        processImage();
+      }
+    }
+
+    function fitCanvasToImage() {
+      if (!imgLoaded) return;
+      const maxDim = 1200;
+      const ratio = img.width / img.height;
+      if (img.width > img.height) {
+        canvasW = Math.min(maxDim, img.width);
+        canvasH = Math.round(canvasW / ratio);
+      } else {
+        canvasH = Math.min(maxDim, img.height);
+        canvasW = Math.round(canvasH * ratio);
+      }
+      previewCanvas.width = canvasW;
+      previewCanvas.height = canvasH;
+      metaSize.textContent = 'Canvas: ' + canvasW + ' × ' + canvasH + ' px';
+      previewMeta.style.display = 'flex';
+    }
+
+    function processImage() {
+      if (!imgLoaded) return;
+
+      fitCanvasToImage();
+      previewPlaceholder.style.display = 'none';
+
+      const w = canvasW;
+      const h = canvasH;
+
+      ctxPreview.clearRect(0, 0, w, h);
+
+      ctxPreview.save();
+      if (state.flipHorizontal) {
+        ctxPreview.translate(w, 0);
+        ctxPreview.scale(-1, 1);
+      }
+
+      const filterParts = [];
+      if (state.blur > 0) filterParts.push('blur(' + state.blur + 'px)');
+      if (state.contrast !== 0) {
+        const contrastPct = 100 + state.contrast;
+        filterParts.push('contrast(' + contrastPct + '%)');
+      }
+      ctxPreview.filter = filterParts.join(' ') || 'none';
+
+      ctxPreview.drawImage(img, 0, 0, w, h);
+      ctxPreview.restore();
+      ctxPreview.filter = 'none';
+
+      let imgData = ctxPreview.getImageData(0, 0, w, h);
+      let data = imgData.data;
+
+      if (state.traceMode === 'shadow') {
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          let v = 0.299 * r + 0.587 * g + 0.114 * b;
+          if (state.subjectLighter) {
+            v = 255 - v;
+          }
+          const out = v < state.threshold ? 0 : 255;
+          data[i] = data[i + 1] = data[i + 2] = out;
+          data[i + 3] = 255;
+        }
+      } else if (state.traceMode === 'outline') {
+        const gray = new Uint8ClampedArray(w * h);
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = (y * w + x) * 4;
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            let v = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (state.subjectLighter) {
+              v = 255 - v;
+            }
+            gray[y * w + x] = v;
+          }
+        }
+
+        const sobelOut = new Uint8ClampedArray(w * h);
+        const gxKernel = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+        const gyKernel = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            let gx = 0;
+            let gy = 0;
+            let k = 0;
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const px = gray[(y + ky) * w + (x + kx)];
+                gx += gxKernel[k] * px;
+                gy += gyKernel[k] * px;
+                k++;
+              }
+            }
+            const magnitude = Math.sqrt(gx * gx + gy * gy);
+            sobelOut[y * w + x] = magnitude > 255 ? 255 : magnitude;
+          }
+        }
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = (y * w + x) * 4;
+            const m = sobelOut[y * w + x];
+            const out = m > state.threshold ? 0 : 255;
+            data[idx] = data[idx + 1] = data[idx + 2] = out;
+            data[idx + 3] = 255;
+          }
+        }
+      }
+
+      ctxPreview.putImageData(imgData, 0, 0);
+
+      if (state.hotspot) {
+        const radiusInner = Math.min(w, h) * 0.15;
+        const radiusOuter = Math.min(w, h) * 0.65;
+        const grad = ctxPreview.createRadialGradient(
+          w / 2, h / 2, radiusInner,
+          w / 2, h / 2, radiusOuter
+        );
+        grad.addColorStop(0, 'rgba(255,255,255,0.16)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctxPreview.globalCompositeOperation = 'screen';
+        ctxPreview.fillStyle = grad;
+        ctxPreview.fillRect(0, 0, w, h);
+        ctxPreview.globalCompositeOperation = 'source-over';
+      }
+
+      updateLabels();
+      enableExportButtons(true);
+    }
+
+    function enableExportButtons(on) {
+      downloadPngBtn.disabled = !on;
+      downloadSvgBtn.disabled = !on;
+    }
+
+    function handleFileChange(e) {
+      const file = e.target.files[0];
+      if (!file) {
+        imgLoaded = false;
+        previewPlaceholder.style.display = 'block';
+        ctxPreview.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        enableExportButtons(false);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        img = new Image();
+        img.onload = function() {
+          imgLoaded = true;
+          origThumb.src = img.src;
+          previewPlaceholder.style.display = 'none';
+          fitCanvasToImage();
+          processImage();
         };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
-        // Handle Image Upload
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    originalUploadedImg = img;
-                    currentImg = img;
-                    isLoaded = true;
-                    isAiProcessed = false;
-                    enableButtons();
-                    thresholdSlider.value = 128;
-                    
-                    // Reset UI
-                    loader.style.display = 'none';
-                    errorText.style.display = 'none';
-                    
-                    processImage();
-                }
-                img.src = event.target.result;
-            }
-            reader.readAsDataURL(file);
-        });
+    function downloadPNG() {
+      if (!imgLoaded) return;
+      const link = document.createElement('a');
+      link.download = 'student_trace.png';
+      link.href = previewCanvas.toDataURL('image/png');
+      link.click();
+    }
 
-        function enableButtons() {
-            dlPng.disabled = false;
-            dlSvg.disabled = false;
-            aiBtn.disabled = false;
-        }
+    function downloadSVG() {
+      if (!imgLoaded) return;
+      const w = canvasW;
+      const h = canvasH;
+      const pngDataUrl = previewCanvas.toDataURL('image/png');
+      const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="' + w +
+        '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+        '<image href="' + pngDataUrl + '" width="' + w + '" height="' + h + '"/></svg>';
 
-        // Handle AI Background Removal
-        aiBtn.addEventListener('click', async () => {
-            if (!originalUploadedImg) return;
-            
-            // UI Update
-            loader.style.display = 'flex';
-            errorText.style.display = 'none';
-            document.querySelector('.spinner').style.display = 'block';
-            loadingText.style.display = 'block';
-            aiBtn.disabled = true;
-            loadingText.innerHTML = "Downloading AI Model...<br><span style='font-size:0.8em; color:#666;'>(This happens once)</span>";
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = 'student_trace.svg';
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
 
-            try {
-                // Execute AI with our fixed config
-                const blob = await removeBackground(originalUploadedImg.src, aiConfig);
-                const url = URL.createObjectURL(blob);
-                
-                const aiImg = new Image();
-                aiImg.onload = () => {
-                    currentImg = aiImg;
-                    isAiProcessed = true;
-                    loader.style.display = 'none';
-                    aiBtn.disabled = false;
-                    processImage();
-                }
-                aiImg.src = url;
-            } catch (error) {
-                console.error("AI FAILED:", error);
-                
-                // Show Error
-                loadingText.style.display = 'none';
-                document.querySelector('.spinner').style.display = 'none';
-                errorText.style.display = 'block';
-                errorText.innerHTML = `<strong>Error:</strong> ${error.message}<br>Try refreshing the page or using a different browser.`;
-                
-                aiBtn.disabled = false;
-            }
-        });
+    fileInput.addEventListener('change', handleFileChange);
 
-        // Rendering Pipeline
-        function processImage() {
-            if (!isLoaded) return;
-            canvas.width = currentImg.width;
-            canvas.height = currentImg.height;
-            const w = canvas.width;
-            const h = canvas.height;
+    contrastSlider.addEventListener('input', () => {
+      state.contrast = parseInt(contrastSlider.value, 10);
+      updateLabels();
+      processImage();
+    });
 
-            // A. Draw Base
-            ctx.save();
-            ctx.clearRect(0, 0, w, h);
-            
-            if (ovalCheck.checked) {
-                ctx.beginPath();
-                ctx.ellipse(w/2, h/2, w/2, h/2, 0, 0, 2 * Math.PI);
-                ctx.clip();
-            }
+    blurSlider.addEventListener('input', () => {
+      state.blur = parseFloat(blurSlider.value);
+      updateLabels();
+      processImage();
+    });
 
-            if (flipCheck.checked) {
-                ctx.translate(w, 0);
-                ctx.scale(-1, 1);
-            }
+    thresholdSlider.addEventListener('input', () => {
+      state.threshold = parseInt(thresholdSlider.value, 10);
+      updateLabels();
+      processImage();
+    });
 
-            ctx.drawImage(currentImg, 0, 0);
-            ctx.restore();
+    subjectLighterCheckbox.addEventListener('change', () => {
+      state.subjectLighter = subjectLighterCheckbox.checked;
+      processImage();
+    });
 
-            // B. Convert to Silhouette
-            const frame = ctx.getImageData(0, 0, w, h);
-            const data = frame.data;
-            const thresh = parseInt(thresholdSlider.value);
-            const isInverted = invertCheck.checked;
+    flipHorizontalCheckbox.addEventListener('change', () => {
+      state.flipHorizontal = flipHorizontalCheckbox.checked;
+      processImage();
+    });
 
-            for (let i = 0; i < data.length; i += 4) {
-                const alpha = data[i+3];
-                if (alpha === 0) continue; // Skip transparent
+    hotspotCheckbox.addEventListener('change', () => {
+      state.hotspot = hotspotCheckbox.checked;
+      processImage();
+    });
 
-                let isSubject = false;
-                if (isAiProcessed) {
-                    // For AI result, if it's visible, it's the person
-                    if (alpha > 50) isSubject = true;
-                } else {
-                    // Manual brightness check
-                    const brightness = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-                    if (isInverted ? brightness > thresh : brightness < thresh) isSubject = true;
-                }
+    traceModeSelect.addEventListener('change', () => {
+      state.traceMode = traceModeSelect.value;
+      processImage();
+    });
 
-                if (isSubject) {
-                    const c = isInverted ? 255 : 0;
-                    data[i] = c; data[i+1] = c; data[i+2] = c; data[i+3] = 255;
-                } else {
-                    data[i+3] = 0;
-                }
-            }
-            ctx.putImageData(frame, 0, 0);
-        }
+    resetImageAdjustBtn.addEventListener('click', () => {
+      setDefaultsImageAdjust();
+      processImage();
+    });
 
-        // Listeners
-        [thresholdSlider, flipCheck, ovalCheck, invertCheck].forEach(el => {
-            el.addEventListener('input', processImage);
-        });
+    resetSensitivityBtn.addEventListener('click', () => {
+      setDefaultsSensitivity();
+      processImage();
+    });
 
-        dlPng.addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.download = 'silhouette.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        });
+    resetAllBtn.addEventListener('click', () => {
+      resetAll();
+    });
 
-        dlSvg.addEventListener('click', () => {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            // Config for smoother vector lines
-            const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2, mincolorratio: 0, colorquantcycles: 0 };
-            const svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
-            const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = 'silhouette.svg';
-            link.href = url;
-            link.click();
-        });
-    </script>
+    downloadPngBtn.addEventListener('click', downloadPNG);
+    downloadSvgBtn.addEventListener('click', downloadSVG);
+
+    // init
+    setDefaultsImageAdjust();
+    setDefaultsSensitivity();
+    setDefaultsProjector();
+    updateLabels();
+    enableExportButtons(false);
+  })();
+</script>
 </body>
 </html>
