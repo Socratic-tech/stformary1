@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projector Trace Tool V3: Cropping</title>
+    <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    
+    <style>
+        :root { 
+            --primary: #2563eb; 
+            --primary-light: #eff6ff;
+            --text-main: #334155;
+            --text-sub: #64748b;
+            --bg: #f8fafc;
+            --card: #ffffff; 
+            --border: #e2e8f0;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg); 
+            color: var(--text-main); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 30px; 
+            margin: 0; 
+        }
+        
+        /* Layout */
+        .container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 30px; 
+            justify-content: center; 
+            width: 100%; 
+            max-width: 1300px; 
+            align-items: flex-start; 
+        }
+        
+        /* Left Panel: Controls */
+        .controls-panel { 
+            flex: 1; 
+            min-width: 320px; 
+            max-width: 380px; 
+            background: var(--card); 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        /* Right Panel: Canvas/Projector Screen */
+        .preview-panel { 
+            flex: 2; 
+            min-width: 340px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            background: #222; 
+            padding: 15px;
+            border-radius: 4px;
+            /* Container for both Canvas and Cropping Tool */
+        }
+        
+        /* Cropping Area Setup */
+        #cropperContainer {
+            width: 100%;
+            max-height: 80vh;
+            display: none; /* Hidden by default */
+            background: #f8fafc; /* Light background for cropping tool */
+        }
+        #cropImageTarget {
+            max-width: 100%;
+        }
+        .cropper-view-box {
+            outline: 2px dashed #ff5722; /* Highlighting the crop box */
+        }
+
+        canvas { 
+            max-width: 100%; 
+            height: auto; 
+            background: white;
+            box-shadow: 0 0 0 1px #000;
+            display: block;
+        }
+
+        /* UI Elements (Same as V2, optimized for space) */
+        .upload-zone { border: 2px dashed #bfdbfe; background: var(--primary-light); color: var(--primary); font-weight: 700; padding: 15px; text-align: center; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .upload-zone:hover { background: #dbeafe; border-color: var(--primary); }
+        .section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px; margin-top: 20px; }
+        .tabs { display: flex; background: #f1f5f9; padding: 4px; border-radius: 8px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; border: none; background: transparent; padding: 8px; font-weight: 600; font-size: 0.9rem; color: var(--text-sub); cursor: pointer; border-radius: 6px; }
+        .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .control-row { margin-bottom: 15px; }
+        .label-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);}
+        .val-badge { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: var(--text-sub); }
+        input[type="range"] { width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb {-webkit-appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-main); cursor: pointer; }
+        input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px; }
+
+        .action-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .btn { padding: 12px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; color: white; display: flex; justify-content: center; align-items: center; font-size: 0.85rem; }
+        .btn-png { background: #0f172a; } .btn-png:hover { background: #334155; }
+        .btn-svg { background: #10b981; } .btn-svg:hover { background: #059669; }
+        .btn-crop { background: #ff9800; } .btn-crop:hover { background: #f57c00; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #fileInput { display: none; }
+        /* Ensure the canvas and cropper occupy the same space */
+        .preview-panel > * { width: 100%; }
+        #canvas.hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="controls-panel">
+            
+            <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+                📂 Upload Student Photo
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+
+            <div class="section-label">Tracing Mode</div>
+            <div class="tabs">
+                <button class="tab-btn active" id="btnShadow" onclick="setMode('shadow')">Cast Shadow</button>
+                <button class="tab-btn" id="btnTrace" onclick="setMode('trace')">Pencil Trace</button>
+            </div>
+
+            <div class="section-label">1. Image Adjust</div>
+            
+            <div class="control-row">
+                <div class="label-row">
+                    <span>Contrast</span>
+                    <span class="val-badge" id="contrastVal">0%</span>
+                </div>
+                <input type="range" id="contrast" min="0" max="200" value="0">
+            </div>
+
+            <div class="control-row">
+                <div class="label-row">
+                    <span>Shadow Focus (Blur)</span>
+                    <span class="val-badge" id="blurVal">4.0px</span>
+                </div>
+                <input type="range" id="blur" min="0" max="10" value="4.0" step="0.5">
+            </div>
+
+            <div class="section-label">2. Sensitivity</div>
+            
+            <div class="control-row">
+                <div class="label-row">
+                    <span>Threshold</span>
+                    <span class="val-badge" id="threshVal">128</span>
+                </div>
+                <input type="range" id="threshold" min="0" max="255" value="128">
+            </div>
+
+            <label class="checkbox-row">
+                <input type="checkbox" id="invert"> Subject is Lighter than Wall
+            </label>
+
+            <div class="section-label">3. Projector Setup</div>
+            
+            <label class="checkbox-row">
+                <input type="checkbox" id="flip" checked> Flip Horizontal (Rear View)
+            </label>
+            
+            <label class="checkbox-row">
+                <input type="checkbox" id="projectorGlow"> Projector Hotspot
+            </label>
+
+            <div class="action-buttons">
+                <button id="dlPng" class="btn btn-png" disabled>⬇ PNG</button>
+                <button id="dlSvg" class="btn btn-svg" disabled>⬇ SVG</button>
+                <button id="btnCrop" class="btn btn-crop" disabled onclick="toggleCropper()">✂️ Crop</button>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <canvas id="canvas"></canvas>
+            
+            <div id="cropperContainer">
+                <img id="cropImageTarget" alt="Cropping Target">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentMode = 'shadow';
+        let currentImg = new Image();
+        let isLoaded = false;
+        let cropperInstance = null;
+        let isCropping = false;
+        let currentCropData = null; // Stores the crop coordinates for rendering
+
+        // Elements
+        const contrastSlider = document.getElementById('contrast');
+        const blurSlider = document.getElementById('blur');
+        const thresholdSlider = document.getElementById('threshold');
+        const flipCheck = document.getElementById('flip');
+        const invertCheck = document.getElementById('invert');
+        const glowCheck = document.getElementById('projectorGlow');
+        const fileInput = document.getElementById('fileInput');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        const btnCrop = document.getElementById('btnCrop');
+        const cropImageTarget = document.getElementById('cropImageTarget');
+        const cropperContainer = document.getElementById('cropperContainer');
+
+        function updateBadges() {
+            document.getElementById('contrastVal').innerText = contrastSlider.value + '%';
+            document.getElementById('blurVal').innerText = blurSlider.value + 'px';
+            document.getElementById('threshVal').innerText = thresholdSlider.value;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btnShadow').className = mode === 'shadow' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('btnTrace').className = mode === 'trace' ? 'tab-btn active' : 'tab-btn';
+            if (!isCropping) processImage();
+        }
+
+        // Upload Handler
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    currentImg = img;
+                    isLoaded = true;
+                    // Reset crop data on new image upload
+                    currentCropData = null; 
+                    btnCrop.innerText = '✂️ Crop';
+                    document.getElementById('dlPng').disabled = false;
+                    document.getElementById('dlSvg').disabled = false;
+                    btnCrop.disabled = false;
+                    processImage();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // --- CORE PIPELINE ---
+        function generateMaskCanvas() {
+            const w = currentImg.width;
+            const h = currentImg.height;
+
+            const maskCvs = document.createElement('canvas');
+            maskCvs.width = w;
+            maskCvs.height = h;
+            const mCtx = maskCvs.getContext('2d');
+
+            // 1. Transform & Filter
+            mCtx.save();
+            if (flipCheck.checked) {
+                mCtx.translate(w, 0); mCtx.scale(-1, 1);
+            }
+            const contrast = 100 + parseInt(contrastSlider.value);
+            const blur = parseFloat(blurSlider.value);
+            mCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
+            mCtx.drawImage(currentImg, 0, 0);
+            mCtx.restore();
+
+            // 2. Threshold Logic
+            const frame = mCtx.getImageData(0, 0, w, h);
+            const data = frame.data;
+            const thresh = parseInt(thresholdSlider.value);
+            const isInverted = invertCheck.checked;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const b = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+                let isSubject = isInverted ? (b > thresh) : (b < thresh);
+
+                if (isSubject) {
+                    data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255; // Black
+                } else {
+                    data[i+3] = 0; // Transparent
+                }
+            }
+            mCtx.putImageData(frame, 0, 0);
+            return maskCvs;
+        }
+
+
+        function processImage() {
+            if (!isLoaded || isCropping) return;
+            
+            const w_orig = currentImg.width;
+            const h_orig = currentImg.height;
+            const maskCanvas = generateMaskCanvas();
+
+            // Handle Cropping
+            let w, h, sx, sy, sw, sh;
+
+            if (currentCropData) {
+                // Apply crop coordinates
+                sx = currentCropData.x;
+                sy = currentCropData.y;
+                sw = currentCropData.width;
+                sh = currentCropData.height;
+                
+                // Set canvas size to cropped dimensions
+                w = sw;
+                h = sh;
+            } else {
+                // Full size rendering
+                w = w_orig;
+                h = h_orig;
+                sx = 0; sy = 0; sw = w_orig; sh = h_orig;
+            }
+
+            canvas.width = w;
+            canvas.height = h;
+
+            // 2. Render to Main Canvas
+            ctx.clearRect(0, 0, w, h);
+            
+            // Background
+            if (glowCheck.checked) {
+                const g = ctx.createRadialGradient(w/2, h/2, w/5, w/2, h/2, w);
+                g.addColorStop(0, "#ffffff"); g.addColorStop(1, "#e2e2e2");
+                ctx.fillStyle = g;
+            } else {
+                ctx.fillStyle = "#ffffff";
+            }
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw Subject (Mask) onto the main canvas, accounting for crop
+            if (currentMode === 'shadow') {
+                // ctx.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh);
+                ctx.drawImage(maskCanvas, sx, sy, sw, sh, 0, 0, w, h);
+            } else {
+                // For Trace mode, we need to crop the trace output.
+                // It's easiest to draw the trace on a temp canvas first and then crop it.
+                const traceCvs = document.createElement('canvas');
+                traceCvs.width = w_orig;
+                traceCvs.height = h_orig;
+                drawOutline(maskCanvas, w_orig, h_orig, traceCvs); // Draw outline onto the full size temp canvas
+                
+                // Then draw the cropped portion of the trace onto the main canvas
+                ctx.drawImage(traceCvs, sx, sy, sw, sh, 0, 0, w, h);
+            }
+        }
+
+        // Helper: Outline Effect
+        function drawOutline(maskCanvas, w, h, targetCanvas) {
+            const tCtx = targetCanvas.getContext('2d');
+            const data = maskCanvas.getContext('2d').getImageData(0, 0, w, h).data;
+            const outlineData = tCtx.createImageData(w, h);
+            const out = outlineData.data;
+
+            for (let y = 1; y < h-1; y++) {
+                for (let x = 1; x < w-1; x++) {
+                    const i = (y * w + x) * 4;
+                    if (data[i+3] === 0) {
+                        const top = ((y-1)*w+x)*4; const bot = ((y+1)*w+x)*4;
+                        const left = (y*w+(x-1))*4; const right = (y*w+(x+1))*4;
+                        
+                        if (data[top+3]>0 || data[bot+3]>0 || data[left+3]>0 || data[right+3]>0) {
+                            out[i]=80; out[i+1]=80; out[i+2]=80; out[i+3]=255;
+                        }
+                    }
+                }
+            }
+            tCtx.putImageData(outlineData, 0, 0);
+        }
+
+        // --- CROPPER LOGIC ---
+        function toggleCropper() {
+            if (!isLoaded) return;
+
+            if (!isCropping) {
+                // ENTER CROPPING MODE
+                
+                // Hide canvas, show cropper area
+                canvas.style.display = 'none';
+                cropperContainer.style.display = 'block';
+
+                // Render the mask to an Image object for Cropper.js
+                const maskCanvas = generateMaskCanvas();
+                const dataUrl = maskCanvas.toDataURL();
+                cropImageTarget.src = dataUrl;
+                
+                // Initialize Cropper
+                if (cropperInstance) cropperInstance.destroy();
+                cropperInstance = new Cropper(cropImageTarget, {
+                    aspectRatio: NaN, // Free crop
+                    viewMode: 1,      // Restrict box to canvas
+                    ready() {
+                        // Apply previous crop data if exists
+                        if (currentCropData) {
+                            cropperInstance.setData(currentCropData);
+                        } else {
+                            // Default crop to whole image
+                            cropperInstance.setCropBoxData({
+                                left: 0, top: 0, 
+                                width: cropperInstance.getImageData().naturalWidth,
+                                height: cropperInstance.getImageData().naturalHeight
+                            });
+                        }
+                    }
+                });
+
+                isCropping = true;
+                btnCrop.innerText = '✅ Apply Crop';
+                // Disable other controls while cropping
+                document.querySelectorAll('.controls-panel input[type="range"]').forEach(input => input.disabled = true);
+
+            } else {
+                // EXIT CROPPING MODE (APPLY CROP)
+
+                // 1. Get Crop Data
+                const cropData = cropperInstance.getData();
+                currentCropData = {
+                    x: Math.floor(cropData.x),
+                    y: Math.floor(cropData.y),
+                    width: Math.floor(cropData.width),
+                    height: Math.floor(cropData.height)
+                };
+
+                // 2. Cleanup Cropper
+                cropperInstance.destroy();
+                cropperInstance = null;
+
+                // 3. Hide cropper, show canvas
+                cropperContainer.style.display = 'none';
+                canvas.style.display = 'block';
+
+                isCropping = false;
+                btnCrop.innerText = '✂️ Crop';
+                document.querySelectorAll('.controls-panel input[type="range"]').forEach(input => input.disabled = false);
+
+                // Re-process image with new crop data
+                processImage();
+            }
+        }
+
+        // Listeners for processing (not allowed during cropping)
+        [contrastSlider, blurSlider, thresholdSlider, flipCheck, invertCheck, glowCheck].forEach(el => {
+            el.addEventListener('input', () => {
+                updateBadges();
+                processImage();
+            });
+        });
+
+        // --- DOWNLOADS (Updated to use crop data) ---
+        function getFinalCanvasImage() {
+            // Re-render the final canvas to ensure PNG/SVG get the absolute latest view
+            processImage();
+            return canvas;
+        }
+
+        document.getElementById('dlPng').addEventListener('click', () => {
+            const finalCanvas = getFinalCanvasImage();
+            const link = document.createElement('a');
+            link.download = 'projector-shadow.png';
+            link.href = finalCanvas.toDataURL();
+            link.click();
+        });
+
+        document.getElementById('dlSvg').addEventListener('click', () => {
+            // The SVG tracing must happen on the cropped mask data.
+            
+            // 1. Generate the full mask
+            const fullMaskCanvas = generateMaskCanvas();
+            
+            // 2. Create a temporary cropped canvas for tracing
+            let cropCanvas = document.createElement('canvas');
+            const cd = currentCropData;
+
+            if (cd) {
+                cropCanvas.width = cd.width;
+                cropCanvas.height = cd.height;
+                cropCanvas.getContext('2d').drawImage(fullMaskCanvas, cd.x, cd.y, cd.width, cd.height, 0, 0, cd.width, cd.height);
+            } else {
+                // If no crop, use the full mask
+                cropCanvas = fullMaskCanvas;
+            }
+
+            const imageData = cropCanvas.getContext('2d').getImageData(0, 0, cropCanvas.width, cropCanvas.height);
+            const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2 };
+            let svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
+
+            if (currentMode === 'trace') {
+                svgStr = svgStr.replace(/fill="rgb\(0,0,0\)"/g, 'fill="none" stroke="rgb(60,60,60)" stroke-width="2"');
+            }
+
+            const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = 'projector-trace.svg';
+            link.href = url;
+            link.click();
+        });
+
+        updateBadges();
+    </script>
+</body>
+</html>
