@@ -726,6 +726,52 @@
       previewMeta.style.display = 'flex';
     }
 
+    // NEW: smooth binary mask to "round off" hair weirdness
+    function smoothBinaryMask(imgData, w, h) {
+      const data = imgData.data;
+      const src = new Uint8ClampedArray(w * h);
+
+      // Copy grayscale (0 or 255) from the red channel
+      for (let i = 0; i < w * h; i++) {
+        src[i] = data[i * 4]; // R channel
+      }
+
+      const dst = new Uint8ClampedArray(w * h);
+      const radius = 1; // 3x3 neighborhood
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          let sum = 0;
+          let count = 0;
+
+          for (let ky = -radius; ky <= radius; ky++) {
+            const ny = y + ky;
+            if (ny < 0 || ny >= h) continue;
+
+            for (let kx = -radius; kx <= radius; kx++) {
+              const nx = x + kx;
+              if (nx < 0 || nx >= w) continue;
+
+              sum += src[ny * w + nx];
+              count++;
+            }
+          }
+
+          const avg = sum / count;
+          // Re-threshold the blurred value
+          dst[y * w + x] = avg > 127 ? 255 : 0;
+        }
+      }
+
+      // Write back to the image data
+      for (let i = 0; i < w * h; i++) {
+        const v = dst[i];
+        const idx = i * 4;
+        data[idx] = data[idx + 1] = data[idx + 2] = v;
+        data[idx + 3] = 255;
+      }
+    }
+
     function processImage() {
       if (!imgLoaded) return;
 
@@ -759,6 +805,7 @@
       let data = imgData.data;
 
       if (state.traceMode === 'shadow') {
+        // 1) Grayscale + optional invert + initial threshold
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
@@ -771,6 +818,10 @@
           data[i] = data[i + 1] = data[i + 2] = out;
           data[i + 3] = 255;
         }
+
+        // 2) Smooth the silhouette to “round off” hair weirdness
+        smoothBinaryMask(imgData, w, h);
+
       } else if (state.traceMode === 'outline') {
         const gray = new Uint8ClampedArray(w * h);
         for (let y = 0; y < h; y++) {
