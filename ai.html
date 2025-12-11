@@ -3,151 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trace Pro (Lightroom Style)</title>
+    <title>Easy Trace Tool</title>
+    <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
+    
     <style>
         :root {
-            --bg-app: #1e1e1e;       /* Deepest background */
-            --bg-panel: #262626;     /* Sidebar background */
-            --bg-input: #121212;     /* Input fields */
-            --border: #383838;       /* Separators */
-            --accent: #2a8ceb;       /* Adobe Blue */
-            --text-main: #e8e8e8;    /* Primary text */
-            --text-sub: #9b9b9b;     /* Labels */
-            --slider-track: #484848;
-            --slider-thumb: #a0a0a0;
+            --primary: #4f46e5;       /* Friendly Indigo */
+            --primary-hover: #4338ca;
+            --bg-page: #f3f4f6;       /* Soft Gray */
+            --bg-card: #ffffff;       /* Pure White */
+            --text-main: #1f2937;     /* Soft Black */
+            --text-sub: #6b7280;      /* Grey Text */
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
         }
-
-        * { box-sizing: border-box; user-select: none; }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-app);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-page);
             color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            font-size: 12px;
+            margin: 0;
+            display: flex;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
             overflow: hidden;
         }
 
-        /* --- TOP BAR --- */
-        header {
-            height: 32px;
-            background-color: #323232;
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            border-bottom: 1px solid #111;
-            justify-content: space-between;
-        }
-        .app-title { font-weight: 600; color: #ccc; letter-spacing: 0.5px; }
-        .app-version { color: #666; margin-left: 5px; font-weight: 400; }
-        .header-actions button {
-            background: none; border: none; color: #aaa; padding: 4px 8px; cursor: pointer; font-size: 11px;
-        }
-        .header-actions button:hover { color: white; }
-
-        /* --- MAIN LAYOUT --- */
-        .workspace {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        /* --- CENTER VIEWPORT --- */
-        .viewport {
-            flex: 1;
-            background-color: #111;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* The Canvas Wrapper keeps the image centered */
-        .canvas-wrapper {
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            line-height: 0;
-        }
-        canvas { display: block; max-width: 90vw; max-height: 90vh; }
-        
-        .empty-state {
-            text-align: center;
-            color: #444;
-        }
-        .upload-btn-big {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        .upload-btn-big:hover { background: #1a7acb; }
-
-        /* --- RIGHT SIDEBAR --- */
+        /* --- SIDEBAR (Controls) --- */
         .sidebar {
-            width: 300px;
-            background-color: var(--bg-panel);
-            border-left: 1px solid #111;
+            width: 360px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            z-index: 10;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.03);
         }
-        
-        /* Histogram Area */
-        .histogram-container {
-            height: 120px;
-            padding: 10px;
-            border-bottom: 1px solid var(--border);
-            background: #202020;
-            display: flex;
-            flex-direction: column;
-        }
-        .hist-label { font-size: 10px; color: #666; margin-bottom: 4px; display:flex; justify-content: space-between; }
-        #histCanvas { width: 100%; height: 100%; opacity: 0.8; }
 
-        /* Accordion Panels */
-        .panel { border-bottom: 1px solid var(--border); }
-        
-        .panel-header {
-            padding: 8px 12px;
-            background: #2a2a2a;
-            font-weight: 600;
-            cursor: pointer;
+        .logo-area {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo-area h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--primary);
             display: flex;
             align-items: center;
-            font-size: 11px;
-            color: #ddd;
+            gap: 8px;
         }
-        .panel-header::before {
-            content: '▼';
-            font-size: 8px;
-            margin-right: 8px;
-            color: #888;
-            transition: transform 0.2s;
+
+        .controls-container {
+            padding: 24px;
+            flex: 1;
         }
-        .panel.closed .panel-header::before { transform: rotate(-90deg); }
-        .panel.closed .panel-body { display: none; }
 
-        .panel-body { padding: 12px; }
+        /* Steps */
+        .step-group {
+            margin-bottom: 32px;
+        }
+        .step-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-sub);
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step-number {
+            background: #e0e7ff;
+            color: var(--primary);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
 
-        /* Controls */
-        .control-group { margin-bottom: 15px; }
-        .control-label {
+        /* Inputs */
+        .control-item { margin-bottom: 16px; }
+        .label-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .val-badge {
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
             color: var(--text-sub);
         }
-        .control-val { color: var(--text-main); font-variant-numeric: tabular-nums; }
 
-        /* Pro Sliders */
+        /* Friendly Sliders */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
@@ -155,262 +111,328 @@
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
-            height: 2px;
-            background: var(--slider-track);
-            border-radius: 2px;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 4px;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 12px;
-            width: 12px;
+            height: 20px;
+            width: 20px;
             border-radius: 50%;
-            background: var(--slider-thumb);
+            background: var(--primary);
             cursor: pointer;
-            margin-top: -5px; /* Centers thumb */
-            transition: background 0.1s;
+            margin-top: -7px;
+            border: 3px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
         }
-        input[type=range]:hover::-webkit-slider-thumb { background: #fff; }
-        input[type=range]:active::-webkit-slider-thumb { background: var(--accent); }
+        input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.1); }
 
-        /* Toggles (Checkboxes looking like UI) */
-        .toggle-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding: 4px 0;
-        }
-        input[type="checkbox"] { accent-color: var(--accent); }
-
-        /* Buttons */
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        .btn {
-            background: #3e3e3e;
-            color: white;
-            border: 1px solid #111;
-            padding: 6px 12px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 11px;
+        /* Big Upload Button */
+        .upload-btn {
+            background: #eff6ff;
+            border: 2px dashed #bfdbfe;
+            color: var(--primary);
+            padding: 20px;
+            border-radius: var(--radius);
             text-align: center;
-        }
-        .btn:hover { background: #4e4e4e; }
-        .btn.primary { background: #262626; border: 1px solid var(--accent); color: var(--accent); }
-        .btn.primary:hover { background: var(--accent); color: white; }
-        .btn:disabled { opacity: 0.3; cursor: default; }
-
-        /* Bottom Status Bar */
-        .status-bar {
-            height: 24px;
-            background: #323232;
-            border-top: 1px solid #111;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            padding: 0 10px;
-            color: #666;
-            font-size: 10px;
-            justify-content: space-between;
+            gap: 8px;
         }
+        .upload-btn:hover {
+            background: #dbeafe;
+            border-color: var(--primary);
+        }
+
+        /* Toggles */
+        .toggle-card {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .toggle-card:hover { background: #f3f4f6; }
+        .toggle-card span { font-size: 0.9rem; font-weight: 500; }
+        input[type="checkbox"] {
+            width: 20px; height: 20px; accent-color: var(--primary);
+        }
+
+        /* Mode Tabs */
+        .mode-tabs {
+            display: flex;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .mode-tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        .mode-tab.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Footer Actions */
+        .sidebar-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border);
+            background: #fafafa;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-secondary:hover { background: #f9fafb; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* --- MAIN VIEWPORT --- */
+        .viewport {
+            flex: 1;
+            background: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background-image: 
+                linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        .canvas-card {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            transition: 0.3s;
+        }
+        canvas { display: block; max-width: 100%; max-height: 80vh; border-radius: 4px; }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-sub);
+        }
+        .emoji-icon { font-size: 48px; margin-bottom: 16px; display: block; }
 
         #fileInput { display: none; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="app-title">TRACE PRO <span class="app-version">LR</span></div>
-        <div class="header-actions">
-            <button onclick="document.getElementById('fileInput').click()">Import Photo...</button>
-            <button onclick="resetAll()">Reset All</button>
-        </div>
-    </header>
-
-    <div class="workspace">
-        <div class="viewport">
-            <div id="emptyState" class="empty-state">
-                <div style="font-size: 40px; color: #333; margin-bottom: 10px;">⧉</div>
-                <div>No Image Selected</div>
-                <button class="upload-btn-big" onclick="document.getElementById('fileInput').click()">Open Photo</button>
-                <p style="font-size: 10px; color: #555; margin-top: 10px;">Supports JPG, PNG</p>
-            </div>
-            <div class="canvas-wrapper">
-                <canvas id="canvas"></canvas>
-            </div>
+    <div class="sidebar">
+        <div class="logo-area">
+            <h1>🎨 EasyTrace</h1>
         </div>
 
-        <div class="sidebar">
+        <div class="controls-container">
             
-            <div class="histogram-container">
-                <div class="hist-label"><span>HISTOGRAM</span> <span>RGB</span></div>
-                <canvas id="histCanvas"></canvas>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">Basic</div>
-                <div class="panel-body">
-                    <div class="control-group">
-                        <div class="control-label">Contrast <span id="contrastVal" class="control-val">0</span></div>
-                        <input type="range" id="contrast" min="0" max="200" value="0">
-                    </div>
-                    <div class="control-group">
-                        <div class="control-label">Softness (Blur) <span id="blurVal" class="control-val">2.0</span></div>
-                        <input type="range" id="blur" min="0" max="10" value="2.0" step="0.5">
-                    </div>
+            <div class="step-group">
+                <div class="step-header"><span class="step-number">1</span> Upload</div>
+                <div class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    <span style="font-size: 24px;">📷</span>
+                    <span>Choose Photo</span>
                 </div>
             </div>
 
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">Threshold</div>
-                <div class="panel-body">
-                    <div class="control-group">
-                        <div class="control-label">Cutoff <span id="threshVal" class="control-val">128</span></div>
-                        <input type="range" id="threshold" min="0" max="255" value="128">
-                    </div>
-                    
-                    <div class="toggle-row">
-                        <span>Mode: Outline Trace</span>
-                        <input type="checkbox" id="traceModeToggle">
-                    </div>
-
-                    <div class="toggle-row">
-                        <span>Invert (Light Subject)</span>
-                        <input type="checkbox" id="invert">
-                    </div>
+            <div class="step-group">
+                <div class="step-header"><span class="step-number">2</span> Style</div>
+                <div class="mode-tabs">
+                    <div class="mode-tab active" id="tabShadow" onclick="setMode('shadow')">Filled Shadow</div>
+                    <div class="mode-tab" id="tabOutline" onclick="setMode('outline')">Outline Only</div>
                 </div>
             </div>
 
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">Transform</div>
-                <div class="panel-body">
-                    <div class="toggle-row">
-                        <span>Flip Horizontal</span>
-                        <input type="checkbox" id="flip" checked>
+            <div class="step-group">
+                <div class="step-header"><span class="step-number">3</span> Adjust</div>
+                
+                <div class="control-item">
+                    <div class="label-row">
+                        <span>Shadow Detail</span>
+                        <span class="val-badge" id="threshVal">Medium</span>
                     </div>
-                    <div class="toggle-row">
-                        <span>Projector Hotspot</span>
-                        <input type="checkbox" id="hotspot">
+                    <input type="range" id="threshold" min="0" max="255" value="128">
+                    <div style="font-size: 0.75rem; color: #9ca3af; margin-top:4px;">Slide right for darker, left for lighter</div>
+                </div>
+
+                <div class="control-item">
+                    <div class="label-row">
+                        <span>Smoothness</span>
+                        <span class="val-badge" id="blurVal">Soft</span>
                     </div>
-                    <div class="control-group" style="margin-top:10px;">
-                        <div class="control-label">Crop (Zoom) <span id="cropVal" class="control-val">100%</span></div>
-                        <input type="range" id="crop" min="50" max="100" value="100">
+                    <input type="range" id="blur" min="0" max="10" value="2.0" step="0.5">
+                </div>
+
+                 <div class="control-item">
+                    <div class="label-row">
+                        <span>Zoom / Crop</span>
+                        <span class="val-badge" id="cropVal">100%</span>
                     </div>
+                    <input type="range" id="crop" min="50" max="100" value="100">
                 </div>
             </div>
 
-            <div class="panel">
-                <div class="panel-header" onclick="togglePanel(this)">Export</div>
-                <div class="panel-body">
-                    <div class="btn-row">
-                        <button id="dlPng" class="btn primary" disabled>Export PNG</button>
-                        <button id="dlSvg" class="btn" disabled>Export SVG</button>
-                    </div>
-                    <div style="font-size: 10px; color: #666; margin-top: 10px; line-height: 1.4;">
-                        Use PNG for projection. Use SVG for Cricut/Laser cutting.
-                    </div>
-                </div>
+            <div class="step-group">
+                <div class="step-header"><span class="step-number">4</span> Settings</div>
+                
+                <label class="toggle-card">
+                    <span>Flip for Projector (Rear)</span>
+                    <input type="checkbox" id="flip" checked>
+                </label>
+                
+                <label class="toggle-card">
+                    <span>Add "Hotspot" Glow</span>
+                    <input type="checkbox" id="hotspot">
+                </label>
+                
+                <input type="range" id="contrast" min="0" max="200" value="0" style="display:none;">
+                <input type="checkbox" id="invert" style="display:none;">
             </div>
 
+        </div>
+
+        <div class="sidebar-footer">
+            <button id="dlPng" class="btn-primary" disabled>⬇ Download Image</button>
+            <button id="dlSvg" class="btn-secondary" disabled>⬇ Download Vector (SVG)</button>
         </div>
     </div>
 
-    <div class="status-bar">
-        <span id="statusDims">Ready</span>
-        <span>Zoom: Fit</span>
+    <div class="viewport">
+        <div id="emptyState" class="empty-state">
+            <span class="emoji-icon">👋</span>
+            <h2>Let's trace something!</h2>
+            <p>Upload a photo on the left to get started.</p>
+        </div>
+        
+        <div class="canvas-card" id="canvasCard" style="display:none;">
+            <canvas id="canvas"></canvas>
+        </div>
     </div>
 
     <input type="file" id="fileInput" accept="image/*">
 
-    <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
-
     <script>
-        // DOM Elements
+        // --- ELEMENTS ---
         const fileInput = document.getElementById('fileInput');
-        const emptyState = document.getElementById('emptyState');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        const histCanvas = document.getElementById('histCanvas');
-        const histCtx = histCanvas.getContext('2d');
+        const emptyState = document.getElementById('emptyState');
+        const canvasCard = document.getElementById('canvasCard');
 
         // Inputs
-        const contrastIn = document.getElementById('contrast');
-        const blurIn = document.getElementById('blur');
         const threshIn = document.getElementById('threshold');
-        const flipIn = document.getElementById('flip');
-        const invertIn = document.getElementById('invert');
-        const hotspotIn = document.getElementById('hotspot');
+        const blurIn = document.getElementById('blur');
         const cropIn = document.getElementById('crop');
-        const traceModeIn = document.getElementById('traceModeToggle');
-        
+        const flipIn = document.getElementById('flip');
+        const hotspotIn = document.getElementById('hotspot');
+        const contrastIn = document.getElementById('contrast'); // Hidden but used
+        const invertIn = document.getElementById('invert');     // Hidden but used
+
         // Buttons
+        const tabShadow = document.getElementById('tabShadow');
+        const tabOutline = document.getElementById('tabOutline');
         const dlPng = document.getElementById('dlPng');
         const dlSvg = document.getElementById('dlSvg');
-        const statusDims = document.getElementById('statusDims');
 
         // State
         let currentImg = new Image();
         let isLoaded = false;
+        let traceMode = 'shadow'; // 'shadow' or 'outline'
 
-        // UI Helpers
-        function togglePanel(header) {
-            header.parentElement.classList.toggle('closed');
-        }
+        // --- UI HELPERS ---
+        function updateUI() {
+            // Threshold Text
+            const t = parseInt(threshIn.value);
+            let tText = "Medium";
+            if(t < 80) tText = "Very Low";
+            else if(t < 110) tText = "Low";
+            else if(t > 150) tText = "High";
+            else if(t > 200) tText = "Solid Black";
+            document.getElementById('threshVal').innerText = tText;
 
-        function updateLabels() {
-            document.getElementById('contrastVal').innerText = (contrastIn.value > 0 ? '+' : '') + contrastIn.value;
-            document.getElementById('blurVal').innerText = blurIn.value;
-            document.getElementById('threshVal').innerText = threshIn.value;
+            // Blur Text
+            const b = parseFloat(blurIn.value);
+            let bText = "Medium";
+            if(b === 0) bText = "Sharp";
+            else if(b < 2) bText = "Crisp";
+            else if(b > 4) bText = "Very Soft";
+            document.getElementById('blurVal').innerText = bText;
+
+            // Crop Text
             document.getElementById('cropVal').innerText = cropIn.value + '%';
         }
 
-        // --- HISTOGRAM GENERATOR ---
-        function drawHistogram(data) {
-            // Setup frequency bins
-            const bins = new Array(256).fill(0);
-            for (let i = 0; i < data.length; i += 4) {
-                // Approximate brightness
-                const val = Math.round(0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2]);
-                bins[val]++;
+        function setMode(mode) {
+            traceMode = mode;
+            if(mode === 'shadow') {
+                tabShadow.classList.add('active');
+                tabOutline.classList.remove('active');
+            } else {
+                tabShadow.classList.remove('active');
+                tabOutline.classList.add('active');
             }
-            
-            // Normalize
-            const max = Math.max(...bins);
-            histCanvas.width = 280; 
-            histCanvas.height = 100;
-            histCtx.clearRect(0,0,280,100);
-            
-            histCtx.fillStyle = "#555";
-            histCtx.beginPath();
-            histCtx.moveTo(0, 100);
-            
-            for (let i=0; i<256; i++) {
-                const h = (bins[i] / max) * 100;
-                // Scale width to fit canvas
-                const x = (i/255) * 280;
-                histCtx.lineTo(x, 100 - h);
-            }
-            histCtx.lineTo(280, 100);
-            histCtx.fill();
-
-            // Draw Threshold Line
-            const threshX = (parseInt(threshIn.value) / 255) * 280;
-            histCtx.strokeStyle = "#2a8ceb";
-            histCtx.lineWidth = 1;
-            histCtx.beginPath();
-            histCtx.moveTo(threshX, 0);
-            histCtx.lineTo(threshX, 100);
-            histCtx.stroke();
+            processImage();
         }
 
-        // --- MAIN PIPELINE ---
+        // --- PROCESSING PIPELINE ---
         function processImage() {
             if (!isLoaded) return;
 
-            // 1. Calculations
+            // 1. Calculate Crop/Zoom
             const w = currentImg.width;
             const h = currentImg.height;
-
-            // Handle Crop (Zoom in center)
-            const cropPct = parseInt(cropIn.value) / 100; // 0.5 to 1.0
+            const cropPct = parseInt(cropIn.value) / 100;
             const cropW = w * cropPct;
             const cropH = h * cropPct;
             const cropX = (w - cropW) / 2;
@@ -419,73 +441,65 @@
             canvas.width = cropW;
             canvas.height = cropH;
 
-            statusDims.innerText = `${cropW.toFixed(0)} x ${cropH.toFixed(0)} px`;
-
-            // 2. Temp Canvas for Processing
+            // 2. Temp Canvas for Filters
             const tempCvs = document.createElement('canvas');
             tempCvs.width = cropW;
             tempCvs.height = cropH;
             const tCtx = tempCvs.getContext('2d');
 
-            // Apply Flip & Draw
             tCtx.save();
             if (flipIn.checked) {
-                tCtx.translate(cropW, 0); 
+                tCtx.translate(cropW, 0);
                 tCtx.scale(-1, 1);
             }
             
-            // Apply Filters (Contrast / Blur)
             const contrast = 100 + parseInt(contrastIn.value);
             const blur = parseFloat(blurIn.value);
             tCtx.filter = `contrast(${contrast}%) blur(${blur}px)`;
             
-            // Draw Cropped Image
             tCtx.drawImage(currentImg, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
             tCtx.restore();
 
-            // 3. Thresholding
+            // 3. Thresholding (Make it Black & White)
             const frame = tCtx.getImageData(0, 0, cropW, cropH);
             const data = frame.data;
             const thresh = parseInt(threshIn.value);
             const isInverted = invertIn.checked;
-
-            // Update Histogram based on PRE-threshold data
-            drawHistogram(data);
 
             for (let i = 0; i < data.length; i += 4) {
                 const b = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
                 let isSubject = isInverted ? (b > thresh) : (b < thresh);
 
                 if (isSubject) {
-                    data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255; // Black
+                    data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255;
                 } else {
-                    data[i+3] = 0; // Transparent
+                    data[i+3] = 0;
                 }
             }
             tCtx.putImageData(frame, 0, 0);
 
-            // 4. Final Render to Viewport Canvas
+            // 4. Final Render
             ctx.clearRect(0, 0, cropW, cropH);
 
             // Background
             if (hotspotIn.checked) {
                 const g = ctx.createRadialGradient(cropW/2, cropH/2, cropW/5, cropW/2, cropH/2, cropW);
-                g.addColorStop(0, "#ffffff"); g.addColorStop(1, "#dcdcdc");
+                g.addColorStop(0, "#ffffff"); g.addColorStop(1, "#e5e7eb");
                 ctx.fillStyle = g;
             } else {
                 ctx.fillStyle = "#ffffff";
             }
             ctx.fillRect(0, 0, cropW, cropH);
 
-            // Trace Mode vs Shadow Mode
-            if (traceModeIn.checked) {
+            // Draw based on Mode
+            if (traceMode === 'outline') {
                 drawOutline(tCtx, cropW, cropH);
             } else {
                 ctx.drawImage(tempCvs, 0, 0);
             }
         }
 
-        // Outline Helper
+        // Helper: Simple Edge Detection for Outline
         function drawOutline(maskCtx, w, h) {
             const data = maskCtx.getImageData(0, 0, w, h).data;
             const outlineData = ctx.createImageData(w, h);
@@ -497,9 +511,9 @@
                     if (data[i+3] === 0) { // If transparent
                         const top = ((y-1)*w+x)*4; const bot = ((y+1)*w+x)*4;
                         const left = (y*w+(x-1))*4; const right = (y*w+(x+1))*4;
-                        // If neighbor is black
+                        // If any neighbor is black
                         if (data[top+3]>0 || data[bot+3]>0 || data[left+3]>0 || data[right+3]>0) {
-                            out[i]=80; out[i+1]=80; out[i+2]=80; out[i+3]=255;
+                            out[i]=80; out[i+1]=80; out[i+2]=80; out[i+3]=255; // Grey line
                         }
                     }
                 }
@@ -507,7 +521,7 @@
             ctx.putImageData(outlineData, 0, 0);
         }
 
-        // Import
+        // --- EVENTS ---
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -518,6 +532,7 @@
                     currentImg = img;
                     isLoaded = true;
                     emptyState.style.display = 'none';
+                    canvasCard.style.display = 'flex';
                     dlPng.disabled = false;
                     dlSvg.disabled = false;
                     processImage();
@@ -527,55 +542,40 @@
             reader.readAsDataURL(file);
         });
 
-        // Listeners
-        const controls = [contrastIn, blurIn, threshIn, flipIn, invertIn, hotspotIn, cropIn, traceModeIn];
+        const controls = [threshIn, blurIn, cropIn, flipIn, hotspotIn];
         controls.forEach(el => el.addEventListener('input', () => {
-            updateLabels();
+            updateUI();
             processImage();
         }));
 
         // Export
         dlPng.addEventListener('click', () => {
             const link = document.createElement('a');
-            link.download = 'trace_export.png';
+            link.download = 'my-trace.png';
             link.href = canvas.toDataURL();
             link.click();
         });
 
         dlSvg.addEventListener('click', () => {
-            // Simplified SVG generation for the pro tool (Shadow mode only for robustness)
-            // Re-run the threshold logic on a temp canvas to get clean black/white data
-            const temp = document.createElement('canvas');
-            temp.width = canvas.width; temp.height = canvas.height;
-            const t = temp.getContext('2d');
-            
-            // Re-draw logic (simplified for brevity, assumes current canvas state is close enough or re-calculates)
-            // Ideally we re-run the whole "Temp Canvas" logic from processImage here to ensure pure black/white
-            // But ImageTracer works decently on the canvas output if the background is white and subject is black
             const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
             const options = { ltres: 1, qtres: 1, pathomit: 8, colorsampling: 0, numberofcolors: 2 };
             let svgStr = window.ImageTracer.imagedataToSVG(imageData, options);
             
-            if (traceModeIn.checked) {
-                 svgStr = svgStr.replace(/fill="rgb\(0,0,0\)"/g, 'fill="none" stroke="rgb(60,60,60)" stroke-width="2"');
+            if (traceMode === 'outline') {
+                 svgStr = svgStr.replace(/fill="rgb\(0,0,0\)"/g, 'fill="none" stroke="rgb(80,80,80)" stroke-width="2"');
             }
 
             const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.download = 'trace_vector.svg';
+            link.download = 'my-trace.svg';
             link.href = url;
             link.click();
         });
 
-        function resetAll() {
-            contrastIn.value = 0; blurIn.value = 2.0; threshIn.value = 128;
-            flipIn.checked = true; hotspotIn.checked = false; cropIn.value = 100;
-            updateLabels(); processImage();
-        }
-
         // Init
-        updateLabels();
+        updateUI();
+
     </script>
 </body>
 </html>
