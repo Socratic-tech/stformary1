@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EasyTrace Pro</title>
-    <script src="https://cdn.jsdelivr.net/gh/jankovicsandras/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.5/imagetracer_v1.2.5.js"></script>
     
     <style>
         :root {
@@ -659,6 +659,29 @@
             ctx.putImageData(imgData, 0, 0);
         }
 
+
+        // Phone photos are often 12 MP. Work on a copy no larger than 1200 px on
+        // its long edge so slider changes and SVG tracing stay fast on Chromebooks.
+        const MAX_WORK_EDGE = 1200;
+        function downscaleImage(img) {
+            const scale = Math.min(1, MAX_WORK_EDGE / Math.max(img.width, img.height));
+            if (scale === 1) return img;
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * scale);
+            c.height = Math.round(img.height * scale);
+            const cctx = c.getContext('2d');
+            cctx.imageSmoothingQuality = 'high';
+            cctx.drawImage(img, 0, 0, c.width, c.height);
+            return c;
+        }
+
+        // Sliders fire many input events per second; reprocess once they settle.
+        let processTimer = null;
+        function scheduleProcess() {
+            clearTimeout(processTimer);
+            processTimer = setTimeout(processImage, 150);
+        }
+
         // --- EVENTS ---
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -667,7 +690,7 @@
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    currentImg = img;
+                    currentImg = downscaleImage(img);
                     isLoaded = true;
                     emptyState.style.display = 'none';
                     canvasCard.style.display = 'flex';
@@ -685,7 +708,7 @@
         const controls = [threshIn, blurIn, cropIn, flipIn, hotspotIn, contrastIn, cropShapeIn, invertIn];
         controls.forEach(el => el.addEventListener('input', () => {
             updateUI();
-            processImage();
+            scheduleProcess();
         }));
 
         // --- DOWNLOADS WITH NAMING ---
